@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>nPoint Chat</title>
+    <style>
+        body { font-family: sans-serif; background: #36393f; color: white; display: flex; justify-content: center; height: 100vh; margin: 0; }
+        .chat { width: 400px; display: flex; flex-direction: column; }
+        #messages { flex-grow: 1; overflow-y: auto; padding: 15px; }
+        .controls { display: flex; padding: 10px; background: #2f3136; }
+        input { flex-grow: 1; padding: 10px; border-radius: 5px; border: none; }
+        button { padding: 10px; margin-left: 5px; background: #7289da; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="chat">
+        <div id="messages"></div>
+        <div class="controls">
+            <input type="text" id="msg" placeholder="Сообщение...">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const BIN_ID = "90eec80d40e66ce56f9c";
+        const API_URL = `https://api.npoint.io/${BIN_ID}`;
+
+        // 1. Загрузка сообщений
+        async function fetchMessages() {
+            const response = await fetch(API_URL);
+            const data = await response.json();
+            const container = document.getElementById('messages');
+            container.innerHTML = "";
+            data.messages.forEach(msg => {
+                const div = document.createElement('div');
+                div.innerHTML = `<b>${msg.nickname}:</b> ${msg.text}`;
+                container.appendChild(div);
+            });
+        }
+
+        // 2. Отправка сообщения
+        async function sendMessage() {
+            const input = document.getElementById('msg');
+            if (input.value.trim() === "") return;
+
+            // Сначала берем текущие данные
+            const res = await fetch(API_URL);
+            const data = await res.json();
+            
+            // Добавляем новое
+            data.messages.push({ nickname: "Игрок", text: input.value });
+
+            // Сохраняем обратно
+            await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            input.value = '';
+            fetchMessages();
+        }
+
+        // Обновляем чат каждые 3 секунды
+        setInterval(fetchMessages, 3000);
+        fetchMessages();
+    </script>
+</body>
+</html>
