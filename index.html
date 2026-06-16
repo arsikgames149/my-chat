@@ -2,84 +2,288 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Multi-Room Chat</title>
+    <title>Telegram Clone</title>
     <style>
-        body { font-family: sans-serif; background: #36393f; color: white; display: flex; justify-content: center; height: 100vh; margin: 0; }
-        .chat { width: 400px; display: flex; flex-direction: column; }
-        #messages { flex-grow: 1; overflow-y: auto; padding: 15px; border-bottom: 1px solid #444; }
-        .controls { padding: 10px; background: #2f3136; }
-        input { padding: 8px; border-radius: 5px; border: none; width: 90%; margin-bottom: 5px; }
-        button { padding: 8px; background: #7289da; color: white; border: none; cursor: pointer; width: 100%; }
+        /* Стили в стиле темного Telegram */
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; height: 100vh; background: #0e1621; color: #fff; overflow: hidden; }
+        
+        /* Боковое меню (Список чатов) */
+        #sidebar { width: 300px; background: #17212b; border-right: 1px solid #000; display: flex; flex-direction: column; }
+        #my-profile { padding: 15px; background: #242f3d; display: flex; flex-direction: column; gap: 10px; }
+        .profile-name { font-weight: bold; font-size: 18px; color: #fff; }
+        .action-btn { background: #2b5278; color: #fff; border: none; padding: 10px; border-radius: 5px; cursor: pointer; transition: 0.2s; }
+        .action-btn:hover { background: #32608a; }
+        
+        #chat-list { flex: 1; overflow-y: auto; }
+        .chat-item { padding: 15px; border-bottom: 1px solid #101921; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+        .chat-item:hover { background: #202b36; }
+        .chat-item.active { background: #2b5278; }
+        .avatar { width: 40px; height: 40px; background: #5288c1; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; }
+
+        /* Главное окно чата */
+        #main-area { flex: 1; display: flex; flex-direction: column; background: #0e1621; }
+        #chat-header { padding: 15px; background: #17212b; font-weight: bold; font-size: 18px; border-bottom: 1px solid #000; display: flex; align-items: center; gap: 10px;}
+        
+        #messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .msg { max-width: 60%; padding: 10px 15px; border-radius: 15px; line-height: 1.4; word-wrap: break-word; }
+        .msg.me { align-self: flex-end; background: #2b5278; border-bottom-right-radius: 2px; }
+        .msg.them { align-self: flex-start; background: #182533; border-bottom-left-radius: 2px; }
+        
+        /* Ввод сообщения */
+        #input-area { padding: 15px; background: #17212b; display: flex; gap: 10px; align-items: center; }
+        #msg-input { flex: 1; padding: 12px; border-radius: 10px; border: none; background: #242f3d; color: white; outline: none; }
+        #send-btn { background: #5288c1; color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 18px; }
+
+        /* Всплывающие окна (Модалки) */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .modal.hidden { display: none; }
+        .modal-content { background: #17212b; padding: 30px; border-radius: 10px; width: 300px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        .modal input { width: 90%; padding: 10px; margin: 15px 0; border-radius: 5px; border: none; background: #242f3d; color: white; outline: none; }
     </style>
 </head>
 <body>
-    <div class="chat">
-        <div id="room-info" style="padding:10px; background:#202225; text-align:center;">
-            Комната: <span id="current-tag">общее</span>
+
+    <!-- Экран регистрации профиля -->
+    <div id="profile-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Создай профиль</h3>
+            <p>Придумай себе уникальный тег (имя), по которому тебя найдут друзья:</p>
+            <input type="text" id="setup-username" placeholder="Например: Арсений">
+            <button class="action-btn" onclick="saveProfile()">Войти в чат</button>
         </div>
-        <div id="messages"></div>
-        <div class="controls">
-            <input type="text" id="tag-input" placeholder="Введите тег комнаты...">
-            <button onclick="joinRoom()">Войти в комнату</button>
-            <hr>
-            <input type="text" id="msg" placeholder="Сообщение...">
-            <button onclick="sendMessage()">Отправить</button>
+    </div>
+
+    <!-- Экран поиска пользователя -->
+    <div id="search-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Найти пользователя</h3>
+            <p>Введи точный тег (имя) пользователя:</p>
+            <input type="text" id="search-username" placeholder="Кого ищем?">
+            <button class="action-btn" onclick="startNewChat()">Начать чат</button>
+            <button class="action-btn" style="background:#8b3a3a; margin-top:10px;" onclick="closeSearch()">Отмена</button>
+        </div>
+    </div>
+
+    <!-- Основной интерфейс -->
+    <div id="sidebar">
+        <div id="my-profile">
+            <div style="color:#7f91a4; font-size: 12px;">Мой профиль:</div>
+            <div class="profile-name" id="my-name-display">Загрузка...</div>
+            <button class="action-btn" onclick="openSearch()">🔍 Найти пользователя</button>
+        </div>
+        <div id="chat-list">
+            <!-- Список чатов будет здесь -->
+        </div>
+    </div>
+
+    <div id="main-area">
+        <div id="chat-header" class="hidden">
+            <div class="avatar" id="header-avatar">?</div>
+            <div id="header-name">Выберите чат слева</div>
+        </div>
+        <div id="messages">
+            <div style="text-align:center; color:#7f91a4; margin-top:50px;">
+                Выберите пользователя слева, чтобы начать общение.
+            </div>
+        </div>
+        <div id="input-area" class="hidden">
+            <input type="text" id="msg-input" placeholder="Написать сообщение...">
+            <button id="send-btn" onclick="sendMessage()">➤</button>
         </div>
     </div>
 
     <script>
+        // Настройки npoint
         const BIN_ID = "90eec80d40e66ce56f9c";
         const API_URL = `https://api.npoint.io/${BIN_ID}`;
-        let currentTag = "общее";
 
-        function joinRoom() {
-            const tag = document.getElementById('tag-input').value.trim();
-            if (tag) {
-                currentTag = tag;
-                document.getElementById('current-tag').innerText = tag;
+        // Локальные данные
+        let myUsername = localStorage.getItem('myUsername');
+        let activeChats = JSON.parse(localStorage.getItem('myChats') || '[]');
+        let currentChat = null;
+        let allMessages = []; // Кэш сообщений
+
+        // Инициализация
+        window.onload = () => {
+            if (!myUsername) {
+                document.getElementById('profile-modal').classList.remove('hidden');
+            } else {
+                document.getElementById('my-name-display').innerText = myUsername;
+                renderChatList();
                 fetchMessages();
+                setInterval(fetchMessages, 3000); // Обновление каждые 3 сек
+            }
+            
+            // Отправка по Enter
+            document.getElementById("msg-input").addEventListener("keypress", function(event) {
+                if (event.key === "Enter") sendMessage();
+            });
+        };
+
+        // --- ПРОФИЛЬ И ПОИСК ---
+
+        function saveProfile() {
+            const name = document.getElementById('setup-username').value.trim();
+            if (name) {
+                myUsername = name;
+                localStorage.setItem('myUsername', myUsername);
+                document.getElementById('profile-modal').classList.add('hidden');
+                document.getElementById('my-name-display').innerText = myUsername;
+                fetchMessages();
+                setInterval(fetchMessages, 3000);
             }
         }
 
-        async function fetchMessages() {
-            const response = await fetch(API_URL);
-            const data = await response.json();
-            const container = document.getElementById('messages');
-            container.innerHTML = "";
-            
-            // Фильтруем сообщения по тегу
-            const filtered = data.messages.filter(m => m.tag === currentTag);
-            filtered.forEach(msg => {
+        function openSearch() {
+            document.getElementById('search-modal').classList.remove('hidden');
+            document.getElementById('search-username').value = '';
+        }
+
+        function closeSearch() {
+            document.getElementById('search-modal').classList.add('hidden');
+        }
+
+        function startNewChat() {
+            const friendName = document.getElementById('search-username').value.trim();
+            if (friendName && friendName !== myUsername) {
+                if (!activeChats.includes(friendName)) {
+                    activeChats.push(friendName);
+                    localStorage.setItem('myChats', JSON.stringify(activeChats));
+                }
+                closeSearch();
+                openChat(friendName);
+                renderChatList();
+            } else if (friendName === myUsername) {
+                alert("Нельзя создать чат с самим собой!");
+            }
+        }
+
+        // --- ИНТЕРФЕЙС И ОТРИСОВКА ---
+
+        function renderChatList() {
+            const list = document.getElementById('chat-list');
+            list.innerHTML = '';
+            activeChats.forEach(chatName => {
                 const div = document.createElement('div');
-                div.innerHTML = `<b>${msg.nickname}:</b> ${msg.text}`;
+                div.className = `chat-item ${chatName === currentChat ? 'active' : ''}`;
+                div.onclick = () => openChat(chatName);
+                
+                // Берем первую букву для аватарки
+                const letter = chatName.charAt(0).toUpperCase();
+                
+                div.innerHTML = `
+                    <div class="avatar">${letter}</div>
+                    <div style="font-weight:bold;">${chatName}</div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function openChat(chatName) {
+            currentChat = chatName;
+            
+            // Показываем хедер и поле ввода
+            document.getElementById('chat-header').classList.remove('hidden');
+            document.getElementById('input-area').classList.remove('hidden');
+            
+            document.getElementById('header-name').innerText = chatName;
+            document.getElementById('header-avatar').innerText = chatName.charAt(0).toUpperCase();
+            
+            renderChatList(); // Обновляем выделение слева
+            renderMessages(); // Рисуем сообщения
+        }
+
+        function renderMessages() {
+            if (!currentChat) return;
+            const container = document.getElementById('messages');
+            container.innerHTML = '';
+
+            // Фильтруем сообщения: те, что от меня ему, или от него мне
+            const chatHistory = allMessages.filter(m => 
+                (m.from === myUsername && m.to === currentChat) ||
+                (m.from === currentChat && m.to === myUsername)
+            );
+
+            if (chatHistory.length === 0) {
+                container.innerHTML = '<div style="text-align:center; color:#7f91a4; margin-top:20px;">Здесь пока нет сообщений. Напишите первым!</div>';
+                return;
+            }
+
+            chatHistory.forEach(msg => {
+                const div = document.createElement('div');
+                const isMe = msg.from === myUsername;
+                div.className = `msg ${isMe ? 'me' : 'them'}`;
+                div.innerText = msg.text;
                 container.appendChild(div);
             });
+
+            // Прокрутка вниз
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // --- СЕТЬ (NPOINT) ---
+
+        async function fetchMessages() {
+            try {
+                const res = await fetch(API_URL);
+                const data = await res.json();
+                allMessages = data.messages || [];
+
+                let chatsUpdated = false;
+
+                // Умная логика: Если кто-то написал мне, но его нет в моем списке слева — добавляем его!
+                allMessages.forEach(m => {
+                    if (m.to === myUsername && !activeChats.includes(m.from)) {
+                        activeChats.push(m.from);
+                        chatsUpdated = true;
+                    }
+                });
+
+                if (chatsUpdated) {
+                    localStorage.setItem('myChats', JSON.stringify(activeChats));
+                    renderChatList();
+                }
+
+                if (currentChat) {
+                    renderMessages();
+                }
+            } catch (e) {
+                console.error("Ошибка загрузки:", e);
+            }
         }
 
         async function sendMessage() {
-            const input = document.getElementById('msg');
-            if (input.value.trim() === "") return;
+            const input = document.getElementById('msg-input');
+            const text = input.value.trim();
+            if (text === "" || !currentChat) return;
 
-            const res = await fetch(API_URL);
-            const data = await res.json();
-            
-            data.messages.push({ 
-                nickname: "Игрок", 
-                text: input.value, 
-                tag: currentTag // Сохраняем тег вместе с сообщением
-            });
-
-            await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-
+            // Очищаем поле мгновенно для удобства
             input.value = '';
-            fetchMessages();
-        }
 
-        setInterval(fetchMessages, 3000);
+            try {
+                const res = await fetch(API_URL);
+                const data = await res.json();
+                if(!data.messages) data.messages = [];
+                
+                // Добавляем сообщение с указанием отправителя и получателя
+                data.messages.push({ 
+                    from: myUsername, 
+                    to: currentChat, 
+                    text: text 
+                });
+
+                await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                // Сразу обновляем интерфейс
+                fetchMessages();
+            } catch (e) {
+                alert("Ошибка отправки! Проверьте интернет.");
+            }
+        }
     </script>
 </body>
 </html>
