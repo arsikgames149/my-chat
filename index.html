@@ -2,55 +2,73 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>nPoint Chat</title>
+    <title>Multi-Room Chat</title>
     <style>
         body { font-family: sans-serif; background: #36393f; color: white; display: flex; justify-content: center; height: 100vh; margin: 0; }
         .chat { width: 400px; display: flex; flex-direction: column; }
-        #messages { flex-grow: 1; overflow-y: auto; padding: 15px; }
-        .controls { display: flex; padding: 10px; background: #2f3136; }
-        input { flex-grow: 1; padding: 10px; border-radius: 5px; border: none; }
-        button { padding: 10px; margin-left: 5px; background: #7289da; color: white; border: none; cursor: pointer; }
+        #messages { flex-grow: 1; overflow-y: auto; padding: 15px; border-bottom: 1px solid #444; }
+        .controls { padding: 10px; background: #2f3136; }
+        input { padding: 8px; border-radius: 5px; border: none; width: 90%; margin-bottom: 5px; }
+        button { padding: 8px; background: #7289da; color: white; border: none; cursor: pointer; width: 100%; }
     </style>
 </head>
 <body>
     <div class="chat">
+        <div id="room-info" style="padding:10px; background:#202225; text-align:center;">
+            Комната: <span id="current-tag">общее</span>
+        </div>
         <div id="messages"></div>
         <div class="controls">
+            <input type="text" id="tag-input" placeholder="Введите тег комнаты...">
+            <button onclick="joinRoom()">Войти в комнату</button>
+            <hr>
             <input type="text" id="msg" placeholder="Сообщение...">
-            <button onclick="sendMessage()">Send</button>
+            <button onclick="sendMessage()">Отправить</button>
         </div>
     </div>
 
     <script>
         const BIN_ID = "90eec80d40e66ce56f9c";
         const API_URL = `https://api.npoint.io/${BIN_ID}`;
+        let currentTag = "общее";
 
-        // 1. Загрузка сообщений
+        function joinRoom() {
+            const tag = document.getElementById('tag-input').value.trim();
+            if (tag) {
+                currentTag = tag;
+                document.getElementById('current-tag').innerText = tag;
+                fetchMessages();
+            }
+        }
+
         async function fetchMessages() {
             const response = await fetch(API_URL);
             const data = await response.json();
             const container = document.getElementById('messages');
             container.innerHTML = "";
-            data.messages.forEach(msg => {
+            
+            // Фильтруем сообщения по тегу
+            const filtered = data.messages.filter(m => m.tag === currentTag);
+            filtered.forEach(msg => {
                 const div = document.createElement('div');
                 div.innerHTML = `<b>${msg.nickname}:</b> ${msg.text}`;
                 container.appendChild(div);
             });
         }
 
-        // 2. Отправка сообщения
         async function sendMessage() {
             const input = document.getElementById('msg');
             if (input.value.trim() === "") return;
 
-            // Сначала берем текущие данные
             const res = await fetch(API_URL);
             const data = await res.json();
             
-            // Добавляем новое
-            data.messages.push({ nickname: "Игрок", text: input.value });
+            data.messages.push({ 
+                nickname: "Игрок", 
+                text: input.value, 
+                tag: currentTag // Сохраняем тег вместе с сообщением
+            });
 
-            // Сохраняем обратно
             await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -61,9 +79,7 @@
             fetchMessages();
         }
 
-        // Обновляем чат каждые 3 секунды
         setInterval(fetchMessages, 3000);
-        fetchMessages();
     </script>
 </body>
 </html>
