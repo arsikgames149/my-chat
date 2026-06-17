@@ -2,58 +2,88 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Messenger Login</title>
+    <title>Messenger</title>
     <style>
-        body { background: #0e1621; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .box { background: #17212b; padding: 30px; border-radius: 10px; text-align: center; }
-        input { padding: 10px; width: 200px; border-radius: 5px; border: none; }
-        button { padding: 10px 20px; background: #5288c1; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        body { background: #0e1621; color: white; font-family: sans-serif; display: flex; height: 100vh; margin: 0; }
+        #sidebar { width: 250px; background: #17212b; padding: 20px; border-right: 1px solid #000; }
+        #main { flex: 1; display: flex; flex-direction: column; }
+        #messages { flex: 1; padding: 20px; overflow-y: auto; border-bottom: 1px solid #333; }
+        #input-area { padding: 20px; background: #17212b; display: flex; gap: 10px; }
+        input { flex: 1; padding: 10px; border-radius: 5px; border: none; }
+        button { padding: 10px 15px; background: #5288c1; color: white; border: none; border-radius: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
-    <div class="box" id="auth-box">
-        <h2 id="title">Вход</h2>
-        <input type="text" id="name-input" placeholder="Твой ник">
-        <br><br>
-        <button onclick="saveName()">Войти и зарегистрироваться</button>
+    <div id="sidebar">
+        <div id="user-info"></div>
+        <hr>
+        <div id="chat-list">
+            <p>Чат с другом:</p>
+            <input type="text" id="friend-name" placeholder="Ник друга">
+            <button onclick="setChat()">Выбрать</button>
+        </div>
+    </div>
+    <div id="main">
+        <div id="messages"></div>
+        <div id="input-area">
+            <input type="text" id="msg-input" placeholder="Сообщение...">
+            <button onclick="send()">➤</button>
+        </div>
     </div>
 
     <script>
         const API_URL = "https://api.npoint.io/3741109c73467226e5c9";
-        
-        // Проверяем, есть ли уже ник
-        const savedName = localStorage.getItem('myUsername');
-        if (savedName) {
-            document.getElementById('title').innerText = "Ты вошел как: " + savedName;
-            document.getElementById('name-input').style.display = 'none';
-            document.querySelector('button').innerText = "Изменить тег";
-            document.querySelector('button').onclick = () => {
-                localStorage.removeItem('myUsername');
-                location.reload();
-            };
+        let myName = localStorage.getItem('myUsername');
+        let currentChat = localStorage.getItem('currentChat') || "";
+
+        // Регистрация
+        if (!myName) {
+            myName = prompt("Введи свой ник:");
+            if (myName) {
+                localStorage.setItem('myUsername', myName);
+                registerInDB(myName);
+            } else location.reload();
         }
+        document.getElementById('user-info').innerHTML = `<b>${myName}</b><br><button onclick="localStorage.clear(); location.reload();">Сменить ник</button>`;
 
-        async function saveName() {
-            const name = document.getElementById('name-input').value;
-            if (!name) return alert("Введите ник!");
-
-            // Сохраняем локально
-            localStorage.setItem('myUsername', name);
-            
-            // Регистрируем в базе данных
+        async function registerInDB(name) {
             const res = await fetch(API_URL);
             const data = await res.json();
             data.profiles = data.profiles || {};
             data.profiles[name] = true;
-            
-            await fetch(API_URL, { 
-                method: 'POST', 
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(data) 
-            });
-            
-            location.reload();
+            await fetch(API_URL, { method: 'POST', body: JSON.stringify(data) });
         }
+
+        function setChat() {
+            const friend = document.getElementById('friend-name').value;
+            if (friend) {
+                localStorage.setItem('currentChat', friend);
+                location.reload();
+            }
+        }
+
+        async function send() {
+            const text = document.getElementById('msg-input').value;
+            if (!currentChat || !text) return;
+            const res = await fetch(API_URL);
+            const data = await res.json();
+            data.messages.push({ from: myName, to: currentChat, text: text });
+            await fetch(API_URL, { method: 'POST', body: JSON.stringify(data) });
+            document.getElementById('msg-input').value = '';
+        }
+
+        setInterval(async () => {
+            if(!currentChat) return;
+            const res = await fetch(API_URL, {cache: 'no-store'});
+            const data = await res.json();
+            const container = document.getElementById('messages');
+            container.innerHTML = '';
+            (data.messages || []).forEach(m => {
+                if((m.from === myName && m.to === currentChat) || (m.from === currentChat && m.to === myName)) {
+                    container.innerHTML += `<div><b>${m.from}:</b> ${m.text}</div>`;
+                }
+            });
+        }, 2000);
     </script>
 </body>
 </html>
