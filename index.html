@@ -2,40 +2,57 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <title>Messenger Login</title>
     <style>
-        body { background: #0e1621; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .container { background: #17212b; padding: 30px; border-radius: 10px; text-align: center; }
-        button { background: #5288c1; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+        body { background: #0e1621; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .box { background: #17212b; padding: 30px; border-radius: 10px; text-align: center; }
+        input { padding: 10px; width: 200px; border-radius: 5px; border: none; }
+        button { padding: 10px 20px; background: #5288c1; color: white; border: none; border-radius: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Messenger v2</h1>
-        <div id="status">Загрузка...</div>
-        <div id="login-area" style="display:none;">
-            <input type="text" id="name-input" placeholder="Твой ник">
-            <button onclick="login()">Войти</button>
-        </div>
+    <div class="box" id="auth-box">
+        <h2 id="title">Вход</h2>
+        <input type="text" id="name-input" placeholder="Твой ник">
+        <br><br>
+        <button onclick="saveName()">Войти и зарегистрироваться</button>
     </div>
 
     <script>
-        const myName = localStorage.getItem('myUsername');
-        const statusDiv = document.getElementById('status');
-        const loginArea = document.getElementById('login-area');
-
-        if (!myName) {
-            statusDiv.innerText = "Ты еще не вошел. Введи ник:";
-            loginArea.style.display = 'block';
-        } else {
-            statusDiv.innerHTML = `Привет, <b>${myName}</b>! <br><br> <button onclick="localStorage.clear(); location.reload();">Выйти</button>`;
+        const API_URL = "https://api.npoint.io/3741109c73467226e5c9";
+        
+        // Проверяем, есть ли уже ник
+        const savedName = localStorage.getItem('myUsername');
+        if (savedName) {
+            document.getElementById('title').innerText = "Ты вошел как: " + savedName;
+            document.getElementById('name-input').style.display = 'none';
+            document.querySelector('button').innerText = "Изменить тег";
+            document.querySelector('button').onclick = () => {
+                localStorage.removeItem('myUsername');
+                location.reload();
+            };
         }
 
-        function login() {
+        async function saveName() {
             const name = document.getElementById('name-input').value;
-            if (name) {
-                localStorage.setItem('myUsername', name);
-                location.reload();
-            }
+            if (!name) return alert("Введите ник!");
+
+            // Сохраняем локально
+            localStorage.setItem('myUsername', name);
+            
+            // Регистрируем в базе данных
+            const res = await fetch(API_URL);
+            const data = await res.json();
+            data.profiles = data.profiles || {};
+            data.profiles[name] = true;
+            
+            await fetch(API_URL, { 
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data) 
+            });
+            
+            location.reload();
         }
     </script>
 </body>
