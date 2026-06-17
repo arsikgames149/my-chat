@@ -16,7 +16,10 @@
         .chat-item { padding: 15px; border-bottom: 1px solid #101921; cursor: pointer; display: flex; align-items: center; gap: 10px; }
         .chat-item:hover { background: #202b36; }
         .chat-item.active { background: #2b5278; }
-        .avatar { width: 40px; height: 40px; background: #5288c1; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; }
+        
+        /* Стили для аватарок */
+        .avatar { width: 40px; height: 40px; background: #5288c1; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; overflow: hidden; flex-shrink: 0; }
+        .avatar img { width: 100%; height: 100%; object-fit: cover; }
 
         #main-area { flex: 1; display: flex; flex-direction: column; background: #0e1621; }
         #chat-header { padding: 15px; background: #17212b; font-weight: bold; font-size: 18px; border-bottom: 1px solid #000; display: flex; align-items: center; gap: 10px;}
@@ -35,7 +38,7 @@
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; }
         .modal.hidden { display: none; }
         .modal-content { background: #17212b; padding: 30px; border-radius: 10px; width: 300px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
-        .modal input { width: 90%; padding: 10px; margin: 15px 0; border-radius: 5px; border: none; background: #242f3d; color: white; outline: none; }
+        .modal input[type="text"], .modal input[type="date"] { width: 90%; padding: 10px; margin: 10px 0 15px 0; border-radius: 5px; border: none; background: #242f3d; color: white; outline: none; }
     </style>
 
     <script type="text/javascript">
@@ -55,8 +58,27 @@
         <div class="modal-content">
             <h3>Создай профиль</h3>
             <p>Придумай себе уникальный тег (имя):</p>
-            <input type="text" id="setup-username" placeholder="Например: Арсений">
-            <button class="action-btn" onclick="saveProfile()">Войти в чат</button>
+            <input type="text" id="setup-username" placeholder="Арсений">
+            <button class="action-btn" onclick="initProfile()">Войти в чат</button>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Настройки профиля</h3>
+            
+            <div style="text-align: left; margin-bottom: 10px;">
+                <label style="color: #7f91a4; font-size: 14px;">Аватарка (до 500 КБ):</label>
+                <input type="file" id="settings-avatar" accept="image/*" style="margin-top: 5px; width: 100%;">
+            </div>
+
+            <div style="text-align: left; margin-bottom: 15px;">
+                <label style="color: #7f91a4; font-size: 14px;">Дата рождения:</label>
+                <input type="date" id="settings-dob" value="2000-11-01">
+            </div>
+
+            <button class="action-btn" onclick="saveSettings()" style="width: 100%; margin-bottom: 10px;">Сохранить в облако</button>
+            <button class="action-btn" style="background:#8b3a3a; width: 100%;" onclick="closeSettings()">Отмена</button>
         </div>
     </div>
 
@@ -72,8 +94,14 @@
 
     <div id="sidebar">
         <div id="my-profile">
-            <div style="color:#7f91a4; font-size: 12px;">Мой профиль:</div>
-            <div class="profile-name" id="my-name-display">Загрузка...</div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div class="avatar" id="my-avatar-display">?</div>
+                <div>
+                    <div style="color:#7f91a4; font-size: 12px;">Мой профиль:</div>
+                    <div class="profile-name" id="my-name-display">Загрузка...</div>
+                </div>
+            </div>
+            <button class="action-btn" onclick="openSettings()" style="margin-top: 10px;">⚙️ Настройки</button>
             <button class="action-btn" onclick="openSearch()">🔍 Найти пользователя</button>
         </div>
         <div id="chat-list"></div>
@@ -106,53 +134,110 @@
         let activeChats = JSON.parse(localStorage.getItem('myChats') || '[]');
         let currentChat = null;
         let allMessages = [];
+        let globalProfiles = {}; // Здесь хранятся аватарки и даты рождения всех
+        let tempAvatarBase64 = null; // Временное хранилище при выборе файла
 
         window.onload = () => {
             if (!myUsername) {
                 document.getElementById('profile-modal').classList.remove('hidden');
             } else {
                 document.getElementById('my-name-display').innerText = myUsername;
-                renderChatList();
-                fetchMessages();
-                setInterval(fetchMessages, 2000); 
+                fetchData();
+                setInterval(fetchData, 2000); 
             }
             
             document.getElementById("msg-input").addEventListener("keypress", function(event) {
                 if (event.key === "Enter") sendTextMessage();
             });
 
-            // Обработчик загрузки картинки
+            // Загрузка аватарки в настройках
+            document.getElementById("settings-avatar").addEventListener("change", function() {
+                const file = this.files[0];
+                if (!file) return;
+                if(file.size > 500000) { // Ограничение 500 КБ для аватарок, чтобы не вешать базу
+                    alert("Аватарка слишком тяжелая! Максимум 500 КБ.");
+                    this.value = "";
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(e) { tempAvatarBase64 = e.target.result; };
+                reader.readAsDataURL(file);
+            });
+
+            // Отправка картинки в чат
             document.getElementById("img-upload").addEventListener("change", function() {
                 const file = this.files[0];
                 if (!file) return;
-
-                // Если файл слишком большой, база может не справиться. Желательно до 1-2 МБ.
                 if(file.size > 2000000) {
-                    alert("Файл слишком большой! Выбирай картинки до 2 Мегабайт.");
+                    alert("Файл слишком большой! До 2 Мегабайт.");
                     return;
                 }
-
                 const reader = new FileReader();
                 reader.onload = async function(e) {
                     const base64Image = e.target.result;
-                    await sendData("", base64Image); // Отправляем картинку без текста
+                    await sendData("", base64Image);
                 };
                 reader.readAsDataURL(file);
             });
         };
 
-        function saveProfile() {
+        function initProfile() {
             const name = document.getElementById('setup-username').value.trim();
             if (name) {
                 myUsername = name;
                 localStorage.setItem('myUsername', myUsername);
                 document.getElementById('profile-modal').classList.add('hidden');
                 document.getElementById('my-name-display').innerText = myUsername;
-                fetchMessages();
-                setInterval(fetchMessages, 2000);
+                fetchData();
+                setInterval(fetchData, 2000);
             }
         }
 
+        // --- ЛОГИКА НАСТРОЕК ПРОФИЛЯ ---
+        function openSettings() {
+            document.getElementById('settings-modal').classList.remove('hidden');
+            tempAvatarBase64 = null; // Сбрасываем временную картинку
+            
+            // Если профиль уже был сохранен в облаке, подтягиваем дату
+            if (globalProfiles[myUsername] && globalProfiles[myUsername].dob) {
+                document.getElementById('settings-dob').value = globalProfiles[myUsername].dob;
+            }
+        }
+
+        function closeSettings() {
+            document.getElementById('settings-modal').classList.add('hidden');
+        }
+
+        async function saveSettings() {
+            const dob = document.getElementById('settings-dob').value;
+            
+            try {
+                // Скачиваем актуальную базу
+                const res = await fetch(API_URL, { cache: 'no-store' });
+                const data = await res.json();
+                
+                if (!data.profiles) data.profiles = {};
+                if (!data.profiles[myUsername]) data.profiles[myUsername] = {};
+
+                // Обновляем данные
+                if (tempAvatarBase64) data.profiles[myUsername].avatar = tempAvatarBase64;
+                data.profiles[myUsername].dob = dob;
+
+                // Сохраняем в npoint
+                await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                closeSettings();
+                fetchData(); // Сразу перерисовываем
+            } catch (e) {
+                alert("Ошибка сохранения профиля!");
+            }
+        }
+
+        // --- ЛОГИКА ПОИСКА И ЧАТОВ ---
         function openSearch() {
             document.getElementById('search-modal').classList.remove('hidden');
             document.getElementById('search-username').value = '';
@@ -175,15 +260,29 @@
             }
         }
 
+        // Получение Аватарки (либо картинка из профиля, либо буква)
+        function getAvatarHTML(username) {
+            if (globalProfiles[username] && globalProfiles[username].avatar) {
+                return `<img src="${globalProfiles[username].avatar}" alt="${username}">`;
+            }
+            return username.charAt(0).toUpperCase();
+        }
+
         function renderChatList() {
             const list = document.getElementById('chat-list');
             list.innerHTML = '';
+            
+            // Обновляем свою аватарку слева вверху
+            document.getElementById('my-avatar-display').innerHTML = getAvatarHTML(myUsername);
+
             activeChats.forEach(chatName => {
                 const div = document.createElement('div');
                 div.className = `chat-item ${chatName === currentChat ? 'active' : ''}`;
                 div.onclick = () => openChat(chatName);
-                const letter = chatName.charAt(0).toUpperCase();
-                div.innerHTML = `<div class="avatar">${letter}</div><div style="font-weight:bold;">${chatName}</div>`;
+                div.innerHTML = `
+                    <div class="avatar">${getAvatarHTML(chatName)}</div>
+                    <div style="font-weight:bold;">${chatName}</div>
+                `;
                 list.appendChild(div);
             });
         }
@@ -193,7 +292,7 @@
             document.getElementById('chat-header').classList.remove('hidden');
             document.getElementById('input-area').classList.remove('hidden');
             document.getElementById('header-name').innerText = chatName;
-            document.getElementById('header-avatar').innerText = chatName.charAt(0).toUpperCase();
+            document.getElementById('header-avatar').innerHTML = getAvatarHTML(chatName);
             renderChatList();
             renderMessages();
         }
@@ -218,11 +317,7 @@
                 const isMe = msg.from === myUsername;
                 div.className = `msg ${isMe ? 'me' : 'them'}`;
                 
-                // Если есть текст - показываем текст
-                if (msg.text) {
-                    div.innerText = msg.text;
-                }
-                // Если есть картинка - добавляем тег img
+                if (msg.text) div.innerText = msg.text;
                 if (msg.image) {
                     const img = document.createElement('img');
                     img.src = msg.image;
@@ -235,11 +330,14 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        async function fetchMessages() {
+        // Основная функция загрузки (сообщения + профили)
+        async function fetchData() {
             try {
                 const res = await fetch(API_URL, { cache: 'no-store' });
                 const data = await res.json();
+                
                 allMessages = data.messages || [];
+                globalProfiles = data.profiles || {}; // Загружаем все профили
 
                 let chatsUpdated = false;
                 allMessages.forEach(m => {
@@ -251,10 +349,12 @@
 
                 if (chatsUpdated) {
                     localStorage.setItem('myChats', JSON.stringify(activeChats));
-                    renderChatList();
                 }
 
+                renderChatList(); // Перерисовываем список, чтобы обновились новые аватарки
+                
                 if (currentChat) {
+                    document.getElementById('header-avatar').innerHTML = getAvatarHTML(currentChat);
                     renderMessages();
                 }
             } catch (e) {
@@ -262,17 +362,14 @@
             }
         }
 
-        // Отправка обычного текста
         async function sendTextMessage() {
             const input = document.getElementById('msg-input');
             const text = input.value.trim();
             if (text === "" || !currentChat) return;
-
             input.value = '';
-            await sendData(text, null); // Отправляем текст без картинки
+            await sendData(text, null);
         }
 
-        // Универсальная функция для отправки и текста, и картинок
         async function sendData(textData, imageData) {
             try {
                 const res = await fetch(API_URL, { cache: 'no-store' });
@@ -292,7 +389,7 @@
                     body: JSON.stringify(data)
                 });
 
-                fetchMessages();
+                fetchData();
             } catch (e) {
                 alert("Ошибка отправки! Проверьте интернет.");
             }
