@@ -2,78 +2,56 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Система ПВЗ и Маркетплейс</title>
+    <title>ПВЗ Админка</title>
     <style>
-        body { font-family: sans-serif; background: #f4f4f9; margin: 0; }
-        .nav { background: #333; color: white; padding: 15px; display: flex; gap: 20px; }
-        .tab { cursor: pointer; padding: 5px 10px; }
-        .content { padding: 20px; }
-        .card { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        body { font-family: sans-serif; background: #eee; padding: 20px; }
+        .box { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        button { padding: 10px; cursor: pointer; }
     </style>
 </head>
 <body>
-    <div class="nav">
-        <div class="tab" onclick="show('buyer')">Покупатель</div>
-        <div class="tab" onclick="show('seller')">Продавец</div>
-        <div class="tab" onclick="show('worker')">Сотрудник</div>
+    <div class="box">
+        <h2>Магазин</h2>
+        <div id="shop">Загрузка товаров...</div>
     </div>
-
-    <div id="buyer" class="content">
-        <h1>Витрина (100 товаров)</h1>
-        <div id="product-list"></div>
-    </div>
-
-    <div id="seller" class="content" style="display:none;">
-        <h1>Выставить товар</h1>
-        <input type="text" id="prod-name" placeholder="Название товара">
-        <button onclick="addProduct()">Добавить</button>
-    </div>
-
-    <div id="worker" class="content" style="display:none;">
-        <h1>Заказы в работе</h1>
-        <div id="worker-orders"></div>
+    <div class="box">
+        <h2>Заказы (Работник)</h2>
+        <div id="worker-panel">Загрузка...</div>
     </div>
 
     <script>
         const API_URL = "https://api.npoint.io/3741109c73467226e5c9";
 
-        function show(role) {
-            document.querySelectorAll('.content').forEach(el => el.style.display = 'none');
-            document.getElementById(role).style.display = 'block';
+        async function loadData() {
+            try {
+                const res = await fetch(API_URL, {cache: 'no-store'});
+                const data = await res.json();
+                
+                // Отображение магазина
+                document.getElementById('shop').innerHTML = data.products.map(p => 
+                    `<p>${p.name} <button onclick="buy('${p.name}')">Купить</button></p>`
+                ).join('');
+
+                // Отображение заказов для работника
+                document.getElementById('worker-panel').innerHTML = data.orders.map(o => 
+                    `<p>Заказ ${o.id} (${o.item}) - <b>${o.status}</b></p>`
+                ).join('');
+            } catch(e) {
+                document.body.innerHTML = "<h1>Ошибка соединения с базой данных!</h1>";
+            }
         }
 
-        async function addProduct() {
-            const name = document.getElementById('prod-name').value;
+        async function buy(itemName) {
             const res = await fetch(API_URL);
             const data = await res.json();
-            data.products.push({ id: Date.now(), name: name, status: 'available' });
+            data.orders.push({ id: Date.now(), item: itemName, status: "Принят" });
             await fetch(API_URL, { method: 'POST', body: JSON.stringify(data) });
-            alert("Товар добавлен!");
+            alert("Заказ оформлен!");
+            loadData();
         }
 
-        async function updateStatus(orderId, newStatus) {
-            // Логика перехода статусов: принят -> собираем -> в пути -> в пункте
-            const res = await fetch(API_URL);
-            const data = await res.json();
-            const order = data.orders.find(o => o.id === orderId);
-            order.status = newStatus;
-            await fetch(API_URL, { method: 'POST', body: JSON.stringify(data) });
-            alert("Статус обновлен до: " + newStatus);
-        }
-
-        // Автоматическое обновление данных для сотрудника
-        setInterval(async () => {
-            const res = await fetch(API_URL);
-            const data = await res.json();
-            const workerDiv = document.getElementById('worker-orders');
-            workerDiv.innerHTML = data.orders.map(o => `
-                <div class="card">
-                    Заказ ${o.id}: ${o.status} 
-                    <button onclick="updateStatus(${o.id}, 'собираем')">В сборку</button>
-                    <button onclick="updateStatus(${o.id}, 'в пункте')">Прибыл</button>
-                </div>
-            `).join('');
-        }, 5000);
+        // Запуск
+        loadData();
     </script>
 </body>
 </html>
