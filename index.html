@@ -2,101 +2,41 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Messenger</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
-        body { background: #0e1621; color: white; font-family: sans-serif; display: flex; height: 100vh; margin: 0; }
-        #sidebar { width: 250px; background: #17212b; padding: 15px; border-right: 1px solid #000; }
-        #main { flex: 1; display: flex; flex-direction: column; }
-        #messages { flex: 1; padding: 20px; overflow-y: auto; }
-        #input-box { padding: 15px; background: #17212b; display: flex; gap: 10px; }
-        input { flex: 1; padding: 10px; border-radius: 5px; border: none; }
-        button { padding: 10px; cursor: pointer; background: #5288c1; color: white; border: none; border-radius: 5px; }
+        body { background: #0e1621; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .container { background: #17212b; padding: 30px; border-radius: 10px; text-align: center; }
+        button { background: #5288c1; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
-    <div id="sidebar">
-        <div id="my-tag" style="font-weight: bold; margin-bottom: 10px;">Ник: Загрузка...</div>
-        <hr>
-        <button onclick="addNewChat()" style="width: 100%;">+ Новый чат</button>
-    </div>
-    <div id="main">
-        <div id="messages"></div>
-        <div id="input-box">
-            <input type="text" id="msg-input" placeholder="Сообщение...">
-            <button onclick="sendMsg()">Отправить</button>
+    <div class="container">
+        <h1>Messenger v2</h1>
+        <div id="status">Загрузка...</div>
+        <div id="login-area" style="display:none;">
+            <input type="text" id="name-input" placeholder="Твой ник">
+            <button onclick="login()">Войти</button>
         </div>
     </div>
 
     <script>
-        const API_URL = "https://api.npoint.io/3741109c73467226e5c9";
-        let myName = localStorage.getItem('myUsername');
+        const myName = localStorage.getItem('myUsername');
+        const statusDiv = document.getElementById('status');
+        const loginArea = document.getElementById('login-area');
 
-        // 1. Вход и регистрация
         if (!myName) {
-            myName = prompt("Введите ваше имя:");
-            if (myName) {
-                localStorage.setItem('myUsername', myName);
-                registerUser(myName);
-            }
-        }
-        document.getElementById('my-tag').innerText = "Ник: " + myName;
-
-        async function registerUser(name) {
-            const res = await fetch(API_URL);
-            const data = await res.json();
-            data.profiles = data.profiles || {};
-            data.profiles[name] = true;
-            await fetch(API_URL, { method: 'POST', body: JSON.stringify(data) });
-            location.reload();
+            statusDiv.innerText = "Ты еще не вошел. Введи ник:";
+            loginArea.style.display = 'block';
+        } else {
+            statusDiv.innerHTML = `Привет, <b>${myName}</b>! <br><br> <button onclick="localStorage.clear(); location.reload();">Выйти</button>`;
         }
 
-        // 2. Создание чата
-        async function addNewChat() {
-            const friendName = prompt("Введите ник друга:");
-            const res = await fetch(API_URL);
-            const data = await res.json();
-            
-            if (data.profiles && data.profiles[friendName]) {
-                localStorage.setItem('currentChat', friendName);
+        function login() {
+            const name = document.getElementById('name-input').value;
+            if (name) {
+                localStorage.setItem('myUsername', name);
                 location.reload();
-            } else {
-                alert("Ошибка: Пользователя нет в базе!");
             }
         }
-
-        // 3. Отправка сообщений
-        async function sendMsg() {
-            const text = document.getElementById('msg-input').value;
-            const to = localStorage.getItem('currentChat');
-            if (!to || !text) return;
-
-            const res = await fetch(API_URL);
-            const data = await res.json();
-            // Шифрование
-            const enc = CryptoJS.AES.encrypt(text, "secret-key").toString();
-            data.messages.push({ from: myName, to: to, text: enc });
-            await fetch(API_URL, { method: 'POST', body: JSON.stringify(data) });
-            document.getElementById('msg-input').value = '';
-        }
-
-        // 4. Загрузка сообщений
-        setInterval(async () => {
-            const to = localStorage.getItem('currentChat');
-            if(!to) return;
-            const res = await fetch(API_URL, {cache: 'no-store'});
-            const data = await res.json();
-            const container = document.getElementById('messages');
-            container.innerHTML = '';
-            (data.messages || []).forEach(m => {
-                if((m.from === myName && m.to === to) || (m.from === to && m.to === myName)) {
-                    try {
-                        const dec = CryptoJS.AES.decrypt(m.text, "secret-key").toString(CryptoJS.enc.Utf8);
-                        container.innerHTML += `<div><b>${m.from}:</b> ${dec}</div>`;
-                    } catch(e) { container.innerHTML += `<div><b>${m.from}:</b> 🔒 Зашифровано</div>`; }
-                }
-            });
-        }, 2000);
     </script>
 </body>
 </html>
