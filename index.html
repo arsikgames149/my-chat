@@ -78,17 +78,14 @@
         .modal input[type="text"], .modal input[type="date"] { width: 90%; padding: 10px; margin: 10px 0 15px 0; border-radius: 5px; border: 1px solid var(--border); background: var(--bg-panel); color: var(--text); outline: none; }
     </style>
 
-    <!-- Yandex.Metrika counter -->
     <script type="text/javascript">
         (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};m[i].l=1*new Date();for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=109919751', 'ym');
         ym(109919751, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
     </script>
     <noscript><div><img src="https://mc.yandex.ru/watch/109919751" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
-    <!-- /Yandex.Metrika counter -->
-</head>
+    </head>
 <body>
 
-    <!-- Модалки -->
     <div id="profile-modal" class="modal hidden">
         <div class="modal-content">
             <h3>Создай профиль</h3>
@@ -122,7 +119,6 @@
         </div>
     </div>
 
-    <!-- Интерфейс -->
     <div id="sidebar">
         <div id="my-profile">
             <div style="display: flex; align-items: center; gap: 10px; justify-content: space-between;">
@@ -133,7 +129,6 @@
                         <div class="profile-name" id="my-name-display">Загрузка...</div>
                     </div>
                 </div>
-                <!-- Кнопка смены темы -->
                 <button class="circle-btn" style="width:30px; height:30px; font-size:14px; background:transparent; border: 1px solid var(--border); color: var(--text);" onclick="toggleTheme()" id="theme-btn">🌙</button>
             </div>
             <div style="display: flex; gap: 5px; margin-top: 5px;">
@@ -230,18 +225,16 @@
             document.getElementById('theme-btn').innerText = isLight ? '☀️' : '🌙';
         }
 
-        // --- ЗАПИСЬ ГОЛОСА ---
+        // --- ОБНОВЛЕННАЯ ЗАПИСЬ ГОЛОСА ---
         async function toggleVoiceRecord() {
             const micBtn = document.getElementById('mic-btn');
             
             if (isRecording) {
-                // Останавливаем
                 mediaRecorder.stop();
                 micBtn.innerText = '🎤';
                 micBtn.style.background = 'var(--btn)';
                 isRecording = false;
             } else {
-                // Начинаем
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     mediaRecorder = new MediaRecorder(stream);
@@ -251,11 +244,17 @@
                     };
                     
                     mediaRecorder.onstop = () => {
-                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const audioBlob = new Blob(audioChunks); 
                         audioChunks = [];
+                        
+                        if (audioBlob.size > 1000000) {
+                            alert("Голосовое слишком длинное! Попробуй записать короче.");
+                            return;
+                        }
+
                         const reader = new FileReader();
                         reader.onload = async function(e) {
-                            await sendData("", null, e.target.result); // Отправляем аудио
+                            await sendData("", null, e.target.result);
                         };
                         reader.readAsDataURL(audioBlob);
                     };
@@ -263,9 +262,17 @@
                     mediaRecorder.start();
                     isRecording = true;
                     micBtn.innerText = '⏹️';
-                    micBtn.style.background = '#8b3a3a'; // Красный цвет при записи
+                    micBtn.style.background = '#8b3a3a';
+
+                    // Автоматическая остановка через 10 секунд
+                    setTimeout(() => {
+                        if (isRecording) {
+                            toggleVoiceRecord(); 
+                        }
+                    }, 10000);
+
                 } catch (err) {
-                    alert("Нет доступа к микрофону! Разреши доступ в браузере.");
+                    alert("Ошибка микрофона! Проверь, разрешил ли ты браузеру доступ к микрофону.");
                 }
             }
         }
@@ -400,7 +407,6 @@
 
                 wrapper.appendChild(div);
 
-                // Кнопка удаления для своих сообщений
                 if (isMe) {
                     const delBtn = document.createElement('button');
                     delBtn.className = 'del-btn';
@@ -455,7 +461,6 @@
                 const data = await res.json();
                 if(!data.messages) data.messages = [];
                 
-                // Создаем уникальный ID для каждого сообщения (чтобы можно было удалять)
                 const msgId = Date.now().toString();
 
                 data.messages.push({ 
@@ -477,7 +482,6 @@
             } catch (e) { alert("Ошибка отправки!"); }
         }
 
-        // Функция удаления сообщения из базы
         async function deleteMessage(msgId) {
             if (!confirm("Точно удалить это сообщение? Друг его тоже больше не увидит.")) return;
             
@@ -485,7 +489,6 @@
                 const res = await fetch(API_URL, { cache: 'no-store' });
                 const data = await res.json();
                 
-                // Фильтруем базу, оставляя все сообщения КРОМЕ удаленного
                 if(data.messages) {
                     data.messages = data.messages.filter(m => m.id !== msgId);
                 }
