@@ -62,7 +62,6 @@
         .msg.me { background: var(--msg-me); color: var(--text-me); border-bottom-right-radius: 2px; }
         .msg.them { background: var(--msg-them); color: var(--text-them); border-bottom-left-radius: 2px; }
         .msg img { max-width: 100%; border-radius: 10px; margin-top: 5px; display: block; }
-        .msg audio { max-width: 200px; margin-top: 5px; outline: none; }
         
         .del-btn { font-size: 12px; cursor: pointer; color: #8b3a3a; background: none; border: none; opacity: 0.7; }
         .del-btn:hover { opacity: 1; }
@@ -153,8 +152,6 @@
             <input type="file" id="img-upload" accept="image/*" style="display:none;">
             <button class="circle-btn" onclick="document.getElementById('img-upload').click()">📷</button>
             
-            <button class="circle-btn" id="mic-btn" onclick="toggleVoiceRecord()">🎤</button>
-            
             <input type="text" id="msg-input" placeholder="Написать сообщение...">
             <button class="circle-btn" onclick="sendTextMessage()">➤</button>
         </div>
@@ -170,11 +167,6 @@
         let allMessages = [];
         let globalProfiles = {}; 
         let tempAvatarBase64 = null; 
-
-        // Переменные для аудио
-        let mediaRecorder;
-        let audioChunks = [];
-        let isRecording = false;
 
         window.onload = () => {
             // Загрузка темы
@@ -210,7 +202,7 @@
                 if(file.size > 2000000) { alert("Файл слишком большой! До 2 МБ."); return; }
                 const reader = new FileReader();
                 reader.onload = async function(e) {
-                    await sendData("", e.target.result, null);
+                    await sendData("", e.target.result);
                 };
                 reader.readAsDataURL(file);
             });
@@ -223,58 +215,6 @@
             const isLight = body.classList.contains('light-theme');
             localStorage.setItem('theme', isLight ? 'light' : 'dark');
             document.getElementById('theme-btn').innerText = isLight ? '☀️' : '🌙';
-        }
-
-        // --- ОБНОВЛЕННАЯ ЗАПИСЬ ГОЛОСА ---
-        async function toggleVoiceRecord() {
-            const micBtn = document.getElementById('mic-btn');
-            
-            if (isRecording) {
-                mediaRecorder.stop();
-                micBtn.innerText = '🎤';
-                micBtn.style.background = 'var(--btn)';
-                isRecording = false;
-            } else {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    mediaRecorder = new MediaRecorder(stream);
-                    
-                    mediaRecorder.ondataavailable = e => {
-                        audioChunks.push(e.data);
-                    };
-                    
-                    mediaRecorder.onstop = () => {
-                        const audioBlob = new Blob(audioChunks); 
-                        audioChunks = [];
-                        
-                        if (audioBlob.size > 1000000) {
-                            alert("Голосовое слишком длинное! Попробуй записать короче.");
-                            return;
-                        }
-
-                        const reader = new FileReader();
-                        reader.onload = async function(e) {
-                            await sendData("", null, e.target.result);
-                        };
-                        reader.readAsDataURL(audioBlob);
-                    };
-                    
-                    mediaRecorder.start();
-                    isRecording = true;
-                    micBtn.innerText = '⏹️';
-                    micBtn.style.background = '#8b3a3a';
-
-                    // Автоматическая остановка через 10 секунд
-                    setTimeout(() => {
-                        if (isRecording) {
-                            toggleVoiceRecord(); 
-                        }
-                    }, 10000);
-
-                } catch (err) {
-                    alert("Ошибка микрофона! Проверь, разрешил ли ты браузеру доступ к микрофону.");
-                }
-            }
         }
 
         function initProfile() {
@@ -398,12 +338,6 @@
                     img.src = msg.image;
                     div.appendChild(img);
                 }
-                if (msg.audio) {
-                    const audio = document.createElement('audio');
-                    audio.controls = true;
-                    audio.src = msg.audio;
-                    div.appendChild(audio);
-                }
 
                 wrapper.appendChild(div);
 
@@ -452,10 +386,10 @@
             const text = input.value.trim();
             if (text === "" || !currentChat) return;
             input.value = '';
-            await sendData(text, null, null);
+            await sendData(text, null);
         }
 
-        async function sendData(textData, imageData, audioData) {
+        async function sendData(textData, imageData) {
             try {
                 const res = await fetch(API_URL, { cache: 'no-store' });
                 const data = await res.json();
@@ -468,8 +402,7 @@
                     from: myUsername, 
                     to: currentChat, 
                     text: textData,
-                    image: imageData,
-                    audio: audioData
+                    image: imageData
                 });
 
                 await fetch(API_URL, {
