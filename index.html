@@ -2,120 +2,81 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Telegram Clone</title>
+    <title>Telegram Clone - Business Update</title>
     <style>
-        /* CSS ПЕРЕМЕННЫЕ ДЛЯ ТЕМ */
         :root {
-            --bg-main: #0e1621;
-            --bg-side: #17212b;
-            --bg-panel: #242f3d;
-            --text: #ffffff;
-            --text-me: #ffffff;
-            --text-them: #ffffff;
-            --msg-me: #2b5278;
-            --msg-them: #182533;
-            --border: #000000;
-            --hover: #202b36;
-            --btn: #5288c1;
+            --bg-main: #0e1621; --bg-side: #17212b; --bg-panel: #242f3d;
+            --text: #ffffff; --text-me: #ffffff; --text-them: #ffffff;
+            --msg-me: #2b5278; --msg-them: #182533; --border: #000000;
+            --hover: #202b36; --btn: #5288c1;
         }
-
         body.light-theme {
-            --bg-main: #e4ebf0;
-            --bg-side: #ffffff;
-            --bg-panel: #f5f5f5;
-            --text: #000000;
-            --text-me: #000000;
-            --text-them: #000000;
-            --msg-me: #effdde;
-            --msg-them: #ffffff;
-            --border: #cccccc;
-            --hover: #f0f0f0;
-            --btn: #3390ec;
+            --bg-main: #e4ebf0; --bg-side: #ffffff; --bg-panel: #f5f5f5;
+            --text: #000000; --text-me: #000000; --text-them: #000000;
+            --msg-me: #effdde; --msg-them: #ffffff; --border: #cccccc;
+            --hover: #f0f0f0; --btn: #3390ec;
         }
 
-        /* --- АНИМАЦИИ (КЛЮЧЕВЫЕ КАДРЫ) --- */
-        @keyframes slideUp {
-            0% { opacity: 0; transform: translateY(20px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes slideUp { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes popIn { 0% { opacity: 0; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
+        @keyframes fadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
 
-        @keyframes popIn {
-            0% { opacity: 0; transform: scale(0.8); }
-            100% { opacity: 1; transform: scale(1); }
-        }
-
-        @keyframes fadeIn {
-            0% { opacity: 0; }
-            100% { opacity: 1; }
-        }
-
-        /* --- БАЗОВЫЕ СТИЛИ С ПЛАВНЫМИ ПЕРЕХОДАМИ --- */
-        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; height: 100vh; background: var(--bg-main); color: var(--text); overflow: hidden; transition: background 0.4s ease, color 0.4s ease; }
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, sans-serif; display: flex; height: 100vh; background: var(--bg-main); color: var(--text); overflow: hidden; transition: 0.4s ease; }
         
-        #sidebar { width: 300px; background: var(--bg-side); border-right: 1px solid var(--border); display: flex; flex-direction: column; transition: background 0.4s ease, border-color 0.4s ease; z-index: 2; }
-        #my-profile { padding: 15px; background: var(--bg-panel); display: flex; flex-direction: column; gap: 10px; transition: background 0.4s ease; }
+        #sidebar { width: 300px; background: var(--bg-side); border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 2; }
+        #my-profile { padding: 15px; background: var(--bg-panel); display: flex; flex-direction: column; gap: 10px; }
         .profile-name { font-weight: bold; font-size: 18px; color: var(--text); }
         
-        /* Кнопки с эффектом нажатия */
-        .action-btn { background: var(--btn); color: #fff; border: none; padding: 10px; border-radius: 5px; cursor: pointer; transition: background 0.2s, transform 0.1s cubic-bezier(0.4, 0, 0.2, 1); }
+        .action-btn { background: var(--btn); color: #fff; border: none; padding: 10px; border-radius: 5px; cursor: pointer; transition: 0.2s; }
         .action-btn:hover { filter: brightness(1.1); }
         .action-btn:active { transform: scale(0.95); }
+        .circle-btn { background: var(--btn); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 18px; display: flex; justify-content: center; align-items: center; }
         
-        .circle-btn { background: var(--btn); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 18px; display: flex; justify-content: center; align-items: center; transition: background 0.2s, transform 0.1s cubic-bezier(0.4, 0, 0.2, 1); }
-        .circle-btn:active { transform: scale(0.92); }
-
         #chat-list { flex: 1; overflow-y: auto; }
-        .chat-item { padding: 15px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.2s ease, border-color 0.4s ease; }
+        .chat-item { padding: 15px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; gap: 10px; }
         .chat-item:hover { background: var(--hover); }
         .chat-item.active { background: var(--btn); color: #fff; }
         
-        .avatar { width: 40px; height: 40px; background: #5288c1; color: #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; overflow: hidden; flex-shrink: 0; transition: transform 0.3s ease; }
-        .chat-item:hover .avatar { transform: scale(1.05); }
+        .avatar { width: 40px; height: 40px; background: #5288c1; color: #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; overflow: hidden; flex-shrink: 0; }
         .avatar img { width: 100%; height: 100%; object-fit: cover; }
 
-        #main-area { flex: 1; display: flex; flex-direction: column; background: var(--bg-main); transition: background 0.4s ease; position: relative; }
-        #chat-header { padding: 15px; background: var(--bg-side); font-weight: bold; font-size: 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; transition: background 0.4s ease, border-color 0.4s ease; z-index: 10; }
+        #main-area { flex: 1; display: flex; flex-direction: column; background: var(--bg-main); position: relative; }
+        #chat-header { padding: 15px; background: var(--bg-side); font-weight: bold; font-size: 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; z-index: 10; }
         
         #messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth; }
-        
-        /* Анимация сообщений */
         .msg-wrapper { max-width: 60%; display: flex; flex-direction: column; gap: 5px; animation: slideUp 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
         .msg-wrapper.me { align-self: flex-end; align-items: flex-end; }
         .msg-wrapper.them { align-self: flex-start; align-items: flex-start; transform-origin: left bottom; }
         
-        .msg { padding: 10px 15px; border-radius: 15px; line-height: 1.4; word-wrap: break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.1); transition: background 0.4s ease, color 0.4s ease; }
+        .msg { padding: 10px 15px; border-radius: 15px; line-height: 1.4; word-wrap: break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
         .msg.me { background: var(--msg-me); color: var(--text-me); border-bottom-right-radius: 2px; }
         .msg.them { background: var(--msg-them); color: var(--text-them); border-bottom-left-radius: 2px; }
         .msg img { max-width: 100%; border-radius: 10px; margin-top: 5px; display: block; }
         
-        .del-btn { font-size: 12px; cursor: pointer; color: #8b3a3a; background: none; border: none; opacity: 0; transition: opacity 0.2s ease, transform 0.1s ease; transform: translateY(-5px); }
+        .del-btn { font-size: 12px; cursor: pointer; color: #8b3a3a; background: none; border: none; opacity: 0; transition: 0.2s; transform: translateY(-5px); }
         .msg-wrapper:hover .del-btn { opacity: 0.8; transform: translateY(0); }
-        .del-btn:hover { opacity: 1; transform: scale(1.05) !important; }
 
-        #input-area { padding: 15px; background: var(--bg-side); display: flex; gap: 10px; align-items: center; transition: background 0.4s ease; z-index: 10; }
-        #msg-input { flex: 1; padding: 12px; border-radius: 10px; border: none; background: var(--bg-panel); color: var(--text); outline: none; transition: background 0.4s ease, color 0.4s ease, box-shadow 0.2s; }
-        #msg-input:focus { box-shadow: 0 0 0 2px var(--btn); }
+        #input-area { padding: 15px; background: var(--bg-side); display: flex; gap: 10px; align-items: center; z-index: 10; }
+        #msg-input { flex: 1; padding: 12px; border-radius: 10px; border: none; background: var(--bg-panel); color: var(--text); outline: none; }
         
-        /* Модальные окна с пружинящей анимацией */
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; animation: fadeIn 0.2s ease forwards; }
-        .modal.hidden { display: none; }
-        .modal-content { background: var(--bg-side); color: var(--text); padding: 30px; border-radius: 10px; width: 300px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        .modal input[type="text"], .modal input[type="date"] { width: 90%; padding: 10px; margin: 10px 0 15px 0; border-radius: 5px; border: 1px solid var(--border); background: var(--bg-panel); color: var(--text); outline: none; transition: box-shadow 0.2s, background 0.4s ease; }
-        .modal input[type="text"]:focus, .modal input[type="date"]:focus { box-shadow: 0 0 0 2px var(--btn); }
-    </style>
+        /* Стили для панели бота */
+        #bot-panel { padding: 15px; background: var(--bg-side); display: flex; flex-direction: column; gap: 10px; align-items: center; z-index: 10; border-top: 1px solid var(--border); }
+        .bot-info-box { background: var(--bg-panel); padding: 15px; border-radius: 10px; width: 80%; text-align: center; }
 
-    <script type="text/javascript">
-        (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};m[i].l=1*new Date();for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=109919751', 'ym');
-        ym(109919751, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
-    </script>
-    <noscript><div><img src="https://mc.yandex.ru/watch/109919751" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
-    </head>
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; animation: fadeIn 0.2s forwards; }
+        .modal.hidden { display: none; }
+        .modal-content { background: var(--bg-side); color: var(--text); padding: 30px; border-radius: 10px; width: 350px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; max-height: 80vh; overflow-y: auto;}
+        .modal input[type="text"], .modal input[type="date"], .modal textarea { width: 90%; padding: 10px; margin: 5px 0 15px 0; border-radius: 5px; border: 1px solid var(--border); background: var(--bg-panel); color: var(--text); outline: none; font-family: inherit;}
+        
+        .order-box { border: 2px dashed var(--btn); padding: 10px; border-radius: 10px; background: rgba(0,0,0,0.1); margin-top: 5px; width: 100%; box-sizing: border-box; }
+    </style>
+</head>
 <body>
 
     <div id="profile-modal" class="modal hidden">
         <div class="modal-content">
             <h3>Создай профиль</h3>
-            <input type="text" id="setup-username" placeholder="Арсений">
+            <input type="text" id="setup-username" placeholder="Твой ник">
             <button class="action-btn" onclick="initProfile()">Войти в чат</button>
         </div>
     </div>
@@ -123,25 +84,45 @@
     <div id="settings-modal" class="modal hidden">
         <div class="modal-content">
             <h3>Настройки профиля</h3>
-            <div style="text-align: left; margin-bottom: 10px;">
-                <label style="font-size: 14px;">Аватарка (до 500 КБ):</label>
-                <input type="file" id="settings-avatar" accept="image/*" style="margin-top: 5px; width: 100%;">
-            </div>
-            <div style="text-align: left; margin-bottom: 15px;">
-                <label style="font-size: 14px;">Дата рождения:</label>
-                <input type="date" id="settings-dob" value="2000-11-01">
-            </div>
-            <button class="action-btn" onclick="saveSettings()" style="width: 100%; margin-bottom: 10px;">Сохранить в облако</button>
-            <button class="action-btn" style="background:#8b3a3a; width: 100%;" onclick="closeSettings()">Отмена</button>
+            <div style="text-align: left;"><label>Аватарка (до 500 КБ):</label><input type="file" id="settings-avatar" accept="image/*" style="width: 100%; margin-top: 5px; margin-bottom: 15px;"></div>
+            <button class="action-btn" onclick="saveSettings()" style="width: 100%; margin-bottom: 10px;">Сохранить</button>
+            <button class="action-btn" style="background:#8b3a3a; width: 100%;" onclick="document.getElementById('settings-modal').classList.add('hidden')">Отмена</button>
         </div>
     </div>
 
     <div id="search-modal" class="modal hidden">
         <div class="modal-content">
-            <h3>Найти пользователя</h3>
+            <h3>Найти пользователя / бота</h3>
             <input type="text" id="search-username" placeholder="Кого ищем?">
-            <button class="action-btn" onclick="startNewChat()">Начать чат</button>
-            <button class="action-btn" style="background:#8b3a3a; margin-top:10px;" onclick="closeSearch()">Отмена</button>
+            <button class="action-btn" onclick="startNewChat()">Найти</button>
+            <button class="action-btn" style="background:#8b3a3a; margin-top:10px;" onclick="document.getElementById('search-modal').classList.add('hidden')">Отмена</button>
+        </div>
+    </div>
+
+    <div id="business-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Панель управления ботом</h3>
+            <p style="font-size: 12px; opacity: 0.7;">Здесь ты можешь создать своего бота-магазин.</p>
+            
+            <div style="text-align: left;">
+                <label>Имя бота (уникальное):</label>
+                <input type="text" id="biz-bot-name" placeholder="Например: ShopBot">
+                
+                <label>Название товара:</label>
+                <input type="text" id="biz-product" placeholder="Например: Ключ Minecraft">
+                
+                <label>Цена:</label>
+                <input type="text" id="biz-price" placeholder="Например: 150 руб">
+                
+                <label>Реквизиты для оплаты:</label>
+                <input type="text" id="biz-reqs" placeholder="Номер карты или телефон">
+                
+                <label>Промокоды / Ключи (каждый с новой строки):</label>
+                <textarea id="biz-keys" rows="4" placeholder="KEY-123&#10;KEY-456"></textarea>
+            </div>
+
+            <button class="action-btn" onclick="saveBusiness()" style="width: 100%; margin-bottom: 10px; background: #2ea043;">Запустить бота</button>
+            <button class="action-btn" style="background:#8b3a3a; width: 100%;" onclick="document.getElementById('business-modal').classList.add('hidden')">Закрыть</button>
         </div>
     </div>
 
@@ -158,8 +139,9 @@
                 <button class="circle-btn" style="width:30px; height:30px; font-size:14px; background:transparent; border: 1px solid var(--border); color: var(--text);" onclick="toggleTheme()" id="theme-btn">🌙</button>
             </div>
             <div style="display: flex; gap: 5px; margin-top: 5px;">
-                <button class="action-btn" onclick="openSettings()" style="flex: 1;">⚙️</button>
-                <button class="action-btn" onclick="openSearch()" style="flex: 4;">🔍 Найти</button>
+                <button class="action-btn" onclick="document.getElementById('settings-modal').classList.remove('hidden')" style="flex: 1;">⚙️</button>
+                <button class="action-btn" onclick="document.getElementById('search-modal').classList.remove('hidden')" style="flex: 3;">🔍 Найти</button>
+                <button class="action-btn" onclick="openBusinessMenu()" style="flex: 2; background: #2ea043;">💼 Бизнес</button>
             </div>
         </div>
         <div id="chat-list"></div>
@@ -175,13 +157,36 @@
                 Выберите пользователя слева, чтобы начать общение.
             </div>
         </div>
+        
         <div id="input-area" class="hidden">
             <input type="file" id="img-upload" accept="image/*" style="display:none;">
             <button class="circle-btn" onclick="document.getElementById('img-upload').click()">📷</button>
-            
             <input type="text" id="msg-input" placeholder="Написать сообщение...">
             <button class="circle-btn" onclick="sendTextMessage()">➤</button>
         </div>
+
+        <div id="bot-panel" class="hidden">
+            <div class="bot-info-box">
+                <h3 style="margin-top:0;" id="bp-name">Имя Бота</h3>
+                <p>🛍️ Товар: <b id="bp-product">...</b></p>
+                <p>💰 Цена: <b id="bp-price">...</b></p>
+                <hr style="border-color: var(--border); opacity: 0.3;">
+                <p style="font-size: 14px; color: #8b3a3a;" id="bp-stock">В наличии: загрузка...</p>
+                
+                <div id="bp-step-1">
+                    <button class="action-btn" style="width: 100%; font-size: 16px;" onclick="botStep2()">Начать покупку</button>
+                </div>
+                
+                <div id="bp-step-2" class="hidden">
+                    <p style="color: #2ea043; font-size: 14px;">Переведите сумму по реквизитам:</p>
+                    <b style="font-size: 18px;" id="bp-reqs">...</b>
+                    <br><br>
+                    <button class="action-btn" style="width: 100%; background: #2ea043;" onclick="confirmPayment()">✅ Я перевел(а) деньги</button>
+                    <button class="action-btn" style="width: 100%; background: #8b3a3a; margin-top: 5px;" onclick="botStep1()">Отмена</button>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <script>
@@ -193,51 +198,37 @@
         let currentChat = null;
         let allMessages = [];
         let globalProfiles = {}; 
+        let globalBusinesses = {}; // База всех ботов
         let tempAvatarBase64 = null; 
 
         window.onload = () => {
-            if (localStorage.getItem('theme') === 'light') {
-                document.body.classList.add('light-theme');
-                document.getElementById('theme-btn').innerText = '☀️';
-            }
-
+            if (localStorage.getItem('theme') === 'light') toggleTheme();
             if (!myUsername) {
                 document.getElementById('profile-modal').classList.remove('hidden');
             } else {
                 document.getElementById('my-name-display').innerText = myUsername;
                 fetchData();
-                setInterval(fetchData, 2000); 
+                setInterval(fetchData, 3000); 
             }
             
-            document.getElementById("msg-input").addEventListener("keypress", function(event) {
-                if (event.key === "Enter") sendTextMessage();
+            document.getElementById("msg-input").addEventListener("keypress", function(e) { if (e.key === "Enter") sendTextMessage(); });
+            document.getElementById("settings-avatar").addEventListener("change", function(e) {
+                const file = e.target.files[0];
+                if(file && file.size < 500000) {
+                    const r = new FileReader(); r.onload = e => tempAvatarBase64 = e.target.result; r.readAsDataURL(file);
+                } else { alert("Слишком большой файл!"); this.value = ''; }
             });
-
-            document.getElementById("settings-avatar").addEventListener("change", function() {
-                const file = this.files[0];
-                if (!file) return;
-                if(file.size > 500000) { alert("Максимум 500 КБ!"); this.value = ""; return; }
-                const reader = new FileReader();
-                reader.onload = function(e) { tempAvatarBase64 = e.target.result; };
-                reader.readAsDataURL(file);
-            });
-
-            document.getElementById("img-upload").addEventListener("change", function() {
-                const file = this.files[0];
-                if (!file) return;
-                if(file.size > 2000000) { alert("Файл слишком большой! До 2 МБ."); return; }
-                const reader = new FileReader();
-                reader.onload = async function(e) {
-                    await sendData("", e.target.result);
-                };
-                reader.readAsDataURL(file);
+            document.getElementById("img-upload").addEventListener("change", function(e) {
+                const file = e.target.files[0];
+                if(file && file.size < 2000000) {
+                    const r = new FileReader(); r.onload = async e => await sendData(null, e.target.result); r.readAsDataURL(file);
+                }
             });
         };
 
         function toggleTheme() {
-            const body = document.body;
-            body.classList.toggle('light-theme');
-            const isLight = body.classList.contains('light-theme');
+            document.body.classList.toggle('light-theme');
+            const isLight = document.body.classList.contains('light-theme');
             localStorage.setItem('theme', isLight ? 'light' : 'dark');
             document.getElementById('theme-btn').innerText = isLight ? '☀️' : '🌙';
         }
@@ -250,75 +241,89 @@
                 document.getElementById('profile-modal').classList.add('hidden');
                 document.getElementById('my-name-display').innerText = myUsername;
                 fetchData();
-                setInterval(fetchData, 2000);
+                setInterval(fetchData, 3000);
             }
         }
-
-        function openSettings() {
-            document.getElementById('settings-modal').classList.remove('hidden');
-            tempAvatarBase64 = null;
-            if (globalProfiles[myUsername] && globalProfiles[myUsername].dob) {
-                document.getElementById('settings-dob').value = globalProfiles[myUsername].dob;
-            }
-        }
-        function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); }
 
         async function saveSettings() {
-            const dob = document.getElementById('settings-dob').value;
             try {
                 const res = await fetch(API_URL, { cache: 'no-store' });
                 const data = await res.json();
                 if (!data.profiles) data.profiles = {};
                 if (!data.profiles[myUsername]) data.profiles[myUsername] = {};
-
                 if (tempAvatarBase64) data.profiles[myUsername].avatar = tempAvatarBase64;
-                data.profiles[myUsername].dob = dob;
-
-                await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                closeSettings();
+                await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+                document.getElementById('settings-modal').classList.add('hidden');
                 fetchData();
-            } catch (e) { alert("Ошибка сохранения профиля!"); }
+            } catch (e) { alert("Ошибка сохранения!"); }
         }
 
-        function openSearch() { document.getElementById('search-modal').classList.remove('hidden'); document.getElementById('search-username').value = ''; }
-        function closeSearch() { document.getElementById('search-modal').classList.add('hidden'); }
+        // --- ЛОГИКА БИЗНЕСА ---
+        function openBusinessMenu() {
+            document.getElementById('business-modal').classList.remove('hidden');
+            // Если у пользователя уже есть бизнес, заполняем поля
+            const myBotName = Object.keys(globalBusinesses).find(b => globalBusinesses[b].owner === myUsername);
+            if (myBotName) {
+                const b = globalBusinesses[myBotName];
+                document.getElementById('biz-bot-name').value = myBotName;
+                document.getElementById('biz-bot-name').disabled = true; // Имя бота менять нельзя
+                document.getElementById('biz-product').value = b.product;
+                document.getElementById('biz-price').value = b.price;
+                document.getElementById('biz-reqs').value = b.reqs;
+                document.getElementById('biz-keys').value = b.keys.join('\n');
+            }
+        }
 
-        // --- ОБНОВЛЕННАЯ ФУНКЦИЯ ПОИСКА С ПРОВЕРКОЙ ---
+        async function saveBusiness() {
+            const botName = document.getElementById('biz-bot-name').value.trim();
+            const product = document.getElementById('biz-product').value.trim();
+            const price = document.getElementById('biz-price').value.trim();
+            const reqs = document.getElementById('biz-reqs').value.trim();
+            const keysRaw = document.getElementById('biz-keys').value.trim();
+
+            if (!botName || !product || !price || !reqs) return alert("Заполните все поля!");
+            if (botName === myUsername) return alert("Имя бота не может совпадать с твоим ником!");
+            if (globalProfiles[botName]) return alert("Этот ник уже занят обычным пользователем!");
+            
+            const keysArray = keysRaw.split('\n').map(k => k.trim()).filter(k => k !== "");
+
+            try {
+                const res = await fetch(API_URL, { cache: 'no-store' });
+                const data = await res.json();
+                
+                if (!data.businesses) data.businesses = {};
+                
+                // Проверка, не занято ли имя чужим ботом
+                if (data.businesses[botName] && data.businesses[botName].owner !== myUsername) {
+                    return alert("Это имя бота уже занято другим продавцом!");
+                }
+
+                data.businesses[botName] = { owner: myUsername, product, price, reqs, keys: keysArray };
+
+                await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+                document.getElementById('business-modal').classList.add('hidden');
+                alert("Бот успешно обновлен/запущен!");
+                fetchData();
+            } catch (e) { alert("Ошибка сохранения бизнеса!"); }
+        }
+
         function startNewChat() {
             const friendName = document.getElementById('search-username').value.trim();
-            
             if (!friendName) return;
+            if (friendName === myUsername) return alert("Нельзя создать чат с собой!");
+            if (!globalProfiles[friendName] && !globalBusinesses[friendName]) return alert("Такого пользователя или бота нету!");
 
-            // Защита №1: Нельзя искать самого себя
-            if (friendName === myUsername) {
-                alert("Нельзя создать чат с самим собой!");
-                return;
-            }
-
-            // Защита №2: Проверка существования тега в базе данных npoint
-            if (!globalProfiles[friendName]) {
-                alert("Такого пользователя нету!");
-                return;
-            }
-
-            // Если пользователь существует, добавляем в список чатов
             if (!activeChats.includes(friendName)) {
                 activeChats.push(friendName);
                 localStorage.setItem('myChats', JSON.stringify(activeChats));
             }
-            closeSearch();
+            document.getElementById('search-modal').classList.add('hidden');
             openChat(friendName);
-            renderChatList();
         }
 
         function getAvatarHTML(username) {
-            if (globalProfiles[username] && globalProfiles[username].avatar) {
-                return `<img src="${globalProfiles[username].avatar}" alt="${username}">`;
-            }
+            if (globalBusinesses[username]) return `🤖`; // Аватарка для всех ботов
+            if (globalProfiles[username] && globalProfiles[username].avatar) return `<img src="${globalProfiles[username].avatar}">`;
             return username.charAt(0).toUpperCase();
         }
 
@@ -331,10 +336,11 @@
                 const div = document.createElement('div');
                 div.className = `chat-item ${chatName === currentChat ? 'active' : ''}`;
                 div.onclick = () => openChat(chatName);
-                div.innerHTML = `
-                    <div class="avatar">${getAvatarHTML(chatName)}</div>
-                    <div style="font-weight:bold;">${chatName}</div>
-                `;
+                
+                let nameHtml = chatName;
+                if (globalBusinesses[chatName]) nameHtml = `<b>${chatName}</b> <span style="font-size:10px; background:var(--btn); padding:2px 5px; border-radius:5px;">bot</span>`;
+
+                div.innerHTML = `<div class="avatar">${getAvatarHTML(chatName)}</div><div>${nameHtml}</div>`;
                 list.appendChild(div);
             });
         }
@@ -342,59 +348,186 @@
         function openChat(chatName) {
             currentChat = chatName;
             document.getElementById('chat-header').classList.remove('hidden');
-            document.getElementById('input-area').classList.remove('hidden');
             document.getElementById('header-name').innerText = chatName;
             document.getElementById('header-avatar').innerHTML = getAvatarHTML(chatName);
+            
+            // Если открыли бота — показываем панель бота, иначе обычный ввод
+            if (globalBusinesses[chatName]) {
+                document.getElementById('input-area').classList.add('hidden');
+                document.getElementById('bot-panel').classList.remove('hidden');
+                setupBotPanel(chatName);
+            } else {
+                document.getElementById('bot-panel').classList.add('hidden');
+                document.getElementById('input-area').classList.remove('hidden');
+            }
+
             renderChatList();
             renderMessages();
         }
 
+        // --- ЛОГИКА ИНТЕРФЕЙСА БОТА ---
+        function setupBotPanel(botName) {
+            const b = globalBusinesses[botName];
+            document.getElementById('bp-name').innerText = botName;
+            document.getElementById('bp-product').innerText = b.product;
+            document.getElementById('bp-price').innerText = b.price;
+            document.getElementById('bp-reqs').innerText = b.reqs;
+            document.getElementById('bp-stock').innerText = `В наличии: ${b.keys.length} шт.`;
+            
+            botStep1(); // Сброс на кнопку старта
+        }
+
+        function botStep1() {
+            document.getElementById('bp-step-1').classList.remove('hidden');
+            document.getElementById('bp-step-2').classList.add('hidden');
+        }
+
+        function botStep2() {
+            const b = globalBusinesses[currentChat];
+            if (b.keys.length === 0) return alert("К сожалению, товар закончился!");
+            document.getElementById('bp-step-1').classList.add('hidden');
+            document.getElementById('bp-step-2').classList.remove('hidden');
+        }
+
+        async function confirmPayment() {
+            botStep1();
+            
+            // Отправляем специальное сообщение-заказ владельцу бота
+            try {
+                const res = await fetch(API_URL, { cache: 'no-store' });
+                const data = await res.json();
+                if(!data.messages) data.messages = [];
+                
+                const b = globalBusinesses[currentChat];
+                
+                // Сообщение летит напрямую владельцу (owner), а не боту
+                data.messages.push({ 
+                    id: Date.now().toString(),
+                    type: 'order',
+                    from: myUsername, 
+                    to: b.owner, 
+                    botName: currentChat,
+                    product: b.product,
+                    price: b.price,
+                    status: 'pending' // pending -> approved / rejected
+                });
+
+                await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+                
+                alert("Заявка отправлена продавцу! Ожидайте подтверждения.");
+                fetchData();
+            } catch (e) { alert("Ошибка заказа!"); }
+        }
+
+        // --- РЕНДЕР СООБЩЕНИЙ ---
         function renderMessages() {
             if (!currentChat) return;
             const container = document.getElementById('messages');
             
+            // Если мы общаемся с обычным юзером, показываем и текстовые сообщения, и заказы
             const chatHistory = allMessages.filter(m => 
                 (m.from === myUsername && m.to === currentChat) ||
-                (m.from === currentChat && m.to === myUsername)
+                (m.from === currentChat && m.to === myUsername) ||
+                // Если мы открыли чат с ботом, мы должны видеть системные ответы бота
+                (globalBusinesses[currentChat] && m.botName === currentChat && m.from === myUsername)
             );
 
-            if (chatHistory.length === 0) {
-                container.innerHTML = '<div style="text-align:center; opacity: 0.5; margin-top:20px;">Здесь пока нет сообщений. Напишите первым!</div>';
+            container.innerHTML = '';
+
+            if (chatHistory.length === 0 && !globalBusinesses[currentChat]) {
+                container.innerHTML = '<div style="text-align:center; opacity: 0.5; margin-top:20px;">Напишите первым!</div>';
                 return;
             }
 
-            if (container.children.length !== chatHistory.length) {
-                container.innerHTML = '';
-                chatHistory.forEach(msg => {
-                    const wrapper = document.createElement('div');
-                    const isMe = msg.from === myUsername;
-                    wrapper.className = `msg-wrapper ${isMe ? 'me' : 'them'}`;
-                    
-                    const div = document.createElement('div');
-                    div.className = `msg ${isMe ? 'me' : 'them'}`;
-                    
+            chatHistory.forEach(msg => {
+                const wrapper = document.createElement('div');
+                const isMe = msg.from === myUsername;
+                wrapper.className = `msg-wrapper ${isMe ? 'me' : 'them'}`;
+                
+                const div = document.createElement('div');
+                div.className = `msg ${isMe ? 'me' : 'them'}`;
+                
+                // Рендер обычного сообщения
+                if (!msg.type || msg.type === 'text') {
                     if (msg.text) div.innerText = msg.text;
-                    if (msg.image) {
-                        const img = document.createElement('img');
-                        img.src = msg.image;
-                        div.appendChild(img);
-                    }
-
-                    wrapper.appendChild(div);
-
+                    if (msg.image) { const img = document.createElement('img'); img.src = msg.image; div.appendChild(img); }
+                } 
+                // Рендер сообщения-заказа
+                else if (msg.type === 'order') {
+                    div.style.background = 'var(--bg-panel)';
+                    div.style.border = '1px solid var(--btn)';
+                    
                     if (isMe) {
-                        const delBtn = document.createElement('button');
-                        delBtn.className = 'del-btn';
-                        delBtn.innerText = '🗑️ Удалить';
-                        delBtn.onclick = () => deleteMessage(msg.id);
-                        wrapper.appendChild(delBtn);
+                        // Я покупатель
+                        div.innerHTML = `🛒 Заказ в боте <b>${msg.botName}</b><br>Товар: ${msg.product}<br>Статус: <b>${msg.status === 'pending' ? 'Ожидание проверки...' : msg.status === 'approved' ? '<span style="color:#2ea043">✅ Выдано</span>' : '<span style="color:#8b3a3a">❌ Отклонено</span>'}</b>`;
+                    } else {
+                        // Я продавец (владелец бизнеса)
+                        let btns = '';
+                        if (msg.status === 'pending') {
+                            btns = `<div style="margin-top:10px; display:flex; gap:5px;">
+                                <button class="action-btn" style="background:#2ea043; flex:1; font-size:12px; padding:5px;" onclick="processOrder('${msg.id}', 'approve')">✅ Подтвердить</button>
+                                <button class="action-btn" style="background:#8b3a3a; flex:1; font-size:12px; padding:5px;" onclick="processOrder('${msg.id}', 'reject')">❌ Отклонить</button>
+                            </div>`;
+                        }
+                        div.innerHTML = `⚠️ <b>Новая заявка на покупку!</b><br>Бот: ${msg.botName}<br>Клиент: <b>${msg.from}</b><br>Товар: ${msg.product}<br>К оплате: ${msg.price}<br>Статус: <b>${msg.status}</b> ${btns}`;
                     }
+                }
 
-                    container.appendChild(wrapper);
-                });
+                wrapper.appendChild(div);
+                if (isMe && (!msg.type || msg.type === 'text')) {
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'del-btn'; delBtn.innerText = '🗑️ Удалить';
+                    delBtn.onclick = () => deleteMessage(msg.id);
+                    wrapper.appendChild(delBtn);
+                }
+                container.appendChild(wrapper);
+            });
 
-                container.scrollTop = container.scrollHeight;
-            }
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Обработка заказа продавцом
+        async function processOrder(msgId, action) {
+            try {
+                const res = await fetch(API_URL, { cache: 'no-store' });
+                const data = await res.json();
+                
+                const order = data.messages.find(m => m.id === msgId);
+                if (!order) return;
+
+                const botName = order.botName;
+                const buyer = order.from;
+                const b = data.businesses[botName];
+
+                if (action === 'approve') {
+                    if (b.keys.length === 0) return alert("У вас закончились ключи! Добавьте их в настройках бизнеса.");
+                    
+                    order.status = 'approved';
+                    const keyToSend = b.keys.shift(); // Забираем 1 ключ из базы
+                    
+                    // Бот отправляет товар покупателю
+                    data.messages.push({
+                        id: Date.now().toString(),
+                        type: 'text',
+                        from: botName, // отправитель бот
+                        to: buyer, // получатель клиент
+                        text: `🎉 Оплата подтверждена! Вот ваш товар (${b.product}):\n\n🔑 ${keyToSend}\n\nСпасибо за покупку!`
+                    });
+
+                } else if (action === 'reject') {
+                    order.status = 'rejected';
+                    data.messages.push({
+                        id: Date.now().toString(),
+                        type: 'text',
+                        from: botName,
+                        to: buyer,
+                        text: `❌ Продавец не подтвердил оплату заказа (${b.product}).`
+                    });
+                }
+
+                await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+                fetchData();
+            } catch(e) { alert("Ошибка обработки заказа"); }
         }
 
         async function fetchData() {
@@ -404,12 +537,17 @@
                 
                 allMessages = data.messages || [];
                 globalProfiles = data.profiles || {}; 
+                globalBusinesses = data.businesses || {}; // Загружаем список ботов
 
                 let chatsUpdated = false;
+                
+                // Добавляем в список чатов тех, кто нам написал, ИЛИ ботов, с которыми мы взаимодействовали
                 allMessages.forEach(m => {
                     if (m.to === myUsername && !activeChats.includes(m.from)) {
-                        activeChats.push(m.from);
-                        chatsUpdated = true;
+                        activeChats.push(m.from); chatsUpdated = true;
+                    }
+                    if (m.from === myUsername && m.botName && !activeChats.includes(m.botName)) {
+                        activeChats.push(m.botName); chatsUpdated = true;
                     }
                 });
 
@@ -417,7 +555,7 @@
                 
                 renderChatList();
                 if (currentChat) {
-                    document.getElementById('header-avatar').innerHTML = getAvatarHTML(currentChat);
+                    if(globalBusinesses[currentChat]) setupBotPanel(currentChat); // Обновляем остатки ключей
                     renderMessages();
                 }
             } catch (e) { console.error("Ошибка загрузки:", e); }
@@ -436,46 +574,19 @@
                 const res = await fetch(API_URL, { cache: 'no-store' });
                 const data = await res.json();
                 if(!data.messages) data.messages = [];
-                
-                const msgId = Date.now().toString();
-
-                data.messages.push({ 
-                    id: msgId,
-                    from: myUsername, 
-                    to: currentChat, 
-                    text: textData,
-                    image: imageData
-                });
-
-                await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-
+                data.messages.push({ id: Date.now().toString(), type: 'text', from: myUsername, to: currentChat, text: textData, image: imageData });
+                await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
                 fetchData();
             } catch (e) { alert("Ошибка отправки!"); }
         }
 
         async function deleteMessage(msgId) {
-            if (!confirm("Точно удалить это сообщение? Друг его тоже больше не увидит.")) return;
-            
+            if (!confirm("Точно удалить?")) return;
             try {
                 const res = await fetch(API_URL, { cache: 'no-store' });
                 const data = await res.json();
-                
-                if(data.messages) {
-                    data.messages = data.messages.filter(m => m.id !== msgId);
-                }
-
-                await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-
-                const container = document.getElementById('messages');
-                container.innerHTML = '';
+                if(data.messages) data.messages = data.messages.filter(m => m.id !== msgId);
+                await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
                 fetchData();
             } catch (e) { alert("Ошибка удаления!"); }
         }
