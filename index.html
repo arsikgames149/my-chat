@@ -2,77 +2,47 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>CryptoChat Pro</title>
+    <title>Система ПВЗ</title>
     <style>
-        body { background: #0e1621; color: white; font-family: sans-serif; display: flex; height: 100vh; margin: 0; }
-        #sidebar { width: 300px; background: #17212b; padding: 15px; border-right: 1px solid #000; }
-        #main { flex: 1; display: flex; flex-direction: column; }
-        #messages { flex: 1; padding: 20px; overflow-y: auto; }
-        #input-area { padding: 15px; background: #17212b; display: flex; gap: 10px; }
-        input { flex: 1; padding: 10px; border-radius: 5px; border: none; }
-        button { padding: 10px; background: #5288c1; color: white; border: none; cursor: pointer; border-radius: 5px; }
+        body { background: #f4f7f6; font-family: sans-serif; display: flex; height: 100vh; margin: 0; }
+        #sidebar { width: 350px; background: #fff; border-right: 1px solid #ddd; display: flex; flex-direction: column; }
+        #main { flex: 1; padding: 40px; }
+        .order-item { padding: 20px; border-bottom: 1px solid #eee; cursor: pointer; }
+        .order-item:hover { background: #f0f0f0; }
+        .status-ready { color: green; font-weight: bold; }
+        .btn { padding: 15px; border: none; border-radius: 5px; cursor: pointer; background: #28a745; color: white; margin-top: 10px; }
     </style>
 </head>
 <body>
     <div id="sidebar">
-        <div id="my-info">Регистрация ключей...</div>
-        <hr>
-        <div id="chat-list"></div>
-        <button onclick="addNewChat()">+ Новый чат</button>
+        <h3 style="padding: 20px;">Заказы в пункте:</h3>
+        <div id="order-list">
+            <div class="order-item" onclick="loadOrder('№12345')">№12345 — Иван И.</div>
+            <div class="order-item" onclick="loadOrder('№67890')">№67890 — Анна П.</div>
+        </div>
+        <button class="btn" style="background:#007bff; margin: 20px;" onclick="addOrder()">+ Новый заказ</button>
     </div>
+    
     <div id="main">
-        <div id="messages"></div>
-        <div id="input-area">
-            <input type="text" id="msg-input" placeholder="Сообщение...">
-            <button onclick="send()">Отправить</button>
+        <div id="order-details">
+            <h1>Выберите заказ</h1>
+            <p>Нажмите на номер заказа в списке, чтобы увидеть детали.</p>
         </div>
     </div>
 
     <script>
-        const API_URL = "https://api.npoint.io/3741109c73467226e5c9";
-        let myName = localStorage.getItem('myUsername');
-
-        // Генерируем ключи при первом запуске
-        async function initCrypto() {
-            if (!localStorage.getItem('privateKey')) {
-                const keyPair = await window.crypto.subtle.generateKey(
-                    { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]
-                );
-                // Сохраняем ключ локально
-                const exported = await window.crypto.subtle.exportKey("raw", keyPair);
-                localStorage.setItem('privateKey', btoa(String.fromCharCode(...new Uint8Array(exported))));
-            }
+        function loadOrder(id) {
+            document.getElementById('order-details').innerHTML = `
+                <h1>Заказ ${id}</h1>
+                <p>Статус: <span class="status-ready">Ожидает выдачи</span></p>
+                <button class="btn" onclick="alert('Заказ выдан!')">Выдать заказ</button>
+            `;
         }
 
-        async function init() {
-            await initCrypto();
-            if (!myName) {
-                myName = prompt("Введите ник:");
-                localStorage.setItem('myUsername', myName);
-            }
-            document.getElementById('my-info').innerText = "Ник: " + myName;
+        function addOrder() {
+            const num = prompt("Введите номер заказа:");
+            if(num) alert("Заказ " + num + " добавлен в систему!");
         }
-
-        // Упрощенная логика для наглядности (работает как "единый ключ сессии")
-        // В реальном RSA было бы в 10 раз больше кода
-        async function send() {
-            const text = document.getElementById('msg-input').value;
-            const to = localStorage.getItem('currentChat');
-            if (!to || !text) return;
-
-            const res = await fetch(API_URL);
-            const data = await res.json();
-            
-            // Используем Web Crypto для шифрования
-            const encoder = new TextEncoder();
-            const dataEncoded = encoder.encode(text);
-            // ... (далее идет процесс шифрования через subtle.encrypt)
-            
-            data.messages.push({ from: myName, to: to, text: text }); // Здесь будет зашифрованный текст
-            await fetch(API_URL, { method: 'POST', body: JSON.stringify(data) });
-        }
-
-        init();
     </script>
 </body>
 </html>
