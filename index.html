@@ -129,7 +129,7 @@
             </div>
             <div style="text-align: left; margin-bottom: 15px;">
                 <label style="font-size: 14px;">Дата рождения:</label>
-                <input type="date" id="settings-dob" value="2000-01-01">
+                <input type="date" id="settings-dob" value="2000-11-01">
             </div>
             <button class="action-btn" onclick="saveSettings()" style="width: 100%; margin-bottom: 10px;">Сохранить в облако</button>
             <button class="action-btn" style="background:#8b3a3a; width: 100%;" onclick="closeSettings()">Отмена</button>
@@ -287,17 +287,32 @@
         function openSearch() { document.getElementById('search-modal').classList.remove('hidden'); document.getElementById('search-username').value = ''; }
         function closeSearch() { document.getElementById('search-modal').classList.add('hidden'); }
 
+        // --- ОБНОВЛЕННАЯ ФУНКЦИЯ ПОИСКА С ПРОВЕРКОЙ ---
         function startNewChat() {
             const friendName = document.getElementById('search-username').value.trim();
-            if (friendName && friendName !== myUsername) {
-                if (!activeChats.includes(friendName)) {
-                    activeChats.push(friendName);
-                    localStorage.setItem('myChats', JSON.stringify(activeChats));
-                }
-                closeSearch();
-                openChat(friendName);
-                renderChatList();
+            
+            if (!friendName) return;
+
+            // Защита №1: Нельзя искать самого себя
+            if (friendName === myUsername) {
+                alert("Нельзя создать чат с самим собой!");
+                return;
             }
+
+            // Защита №2: Проверка существования тега в базе данных npoint
+            if (!globalProfiles[friendName]) {
+                alert("Такого пользователя нету!");
+                return;
+            }
+
+            // Если пользователь существует, добавляем в список чатов
+            if (!activeChats.includes(friendName)) {
+                activeChats.push(friendName);
+                localStorage.setItem('myChats', JSON.stringify(activeChats));
+            }
+            closeSearch();
+            openChat(friendName);
+            renderChatList();
         }
 
         function getAvatarHTML(username) {
@@ -338,19 +353,16 @@
             if (!currentChat) return;
             const container = document.getElementById('messages');
             
-            // Проверка, есть ли новые сообщения (чтобы не перерисовывать всё без причины)
             const chatHistory = allMessages.filter(m => 
                 (m.from === myUsername && m.to === currentChat) ||
                 (m.from === currentChat && m.to === myUsername)
             );
 
-            // Если сообщений нет
             if (chatHistory.length === 0) {
                 container.innerHTML = '<div style="text-align:center; opacity: 0.5; margin-top:20px;">Здесь пока нет сообщений. Напишите первым!</div>';
                 return;
             }
 
-            // Рендер только если количество изменилось (простая оптимизация анимаций)
             if (container.children.length !== chatHistory.length) {
                 container.innerHTML = '';
                 chatHistory.forEach(msg => {
@@ -462,7 +474,6 @@
                     body: JSON.stringify(data)
                 });
 
-                // Сбрасываем чат для перерисовки с анимацией
                 const container = document.getElementById('messages');
                 container.innerHTML = '';
                 fetchData();
