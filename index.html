@@ -2,40 +2,252 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Создатель Базы</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ГосБаза - Онлайн Портал</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #eef2f5; margin: 0; color: #333; }
+        .header { background: #005bff; color: white; padding: 15px 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .container { max-width: 800px; margin: 30px auto; padding: 20px; }
+        .box { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        
+        input { width: 100%; padding: 12px; margin: 8px 0 15px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        button { background: #005bff; color: white; border: none; padding: 12px 20px; border-radius: 5px; cursor: pointer; width: 100%; font-size: 16px; }
+        button:hover { background: #0044cc; }
+        .btn-red { background: #ff4d4f; }
+        .btn-red:hover { background: #d9363e; }
+        
+        .hidden { display: none; }
+        .admin-tag { background: #ff4d4f; color: white; padding: 3px 8px; border-radius: 4px; font-size: 12px; vertical-align: middle; margin-left: 10px; }
+        
+        .fine-card { border-left: 4px solid #ff4d4f; padding: 15px; background: #fffaf9; margin-bottom: 10px; animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        #loading { text-align: center; color: #005bff; font-weight: bold; margin-bottom: 15px; display: none; }
+    </style>
 </head>
-<body style="font-family: sans-serif; padding: 50px; text-align: center; background: #17212b; color: white;">
-    <h2>Инструмент создания секретной ГосБазы</h2>
-    <button onclick="createBase()" style="padding: 15px 30px; font-size: 18px; cursor: pointer; background: #005bff; color: white; border: none; border-radius: 8px;">Сгенерировать мою базу</button>
-    <h3 id="result" style="color: #4caf50; margin-top: 30px;"></h3>
+<body>
+
+    <div class="header">
+        <h2 style="margin: 0;">🏛️ Государственный Портал (Онлайн)</h2>
+    </div>
+
+    <div class="container">
+        <div id="loading">Связь с сервером...</div>
+        
+        <div id="auth-screen" class="box">
+            <h3>Вход в систему</h3>
+            <label>Ваше ФИО:</label>
+            <input type="text" id="login-fio" placeholder="Например: Иванов Иван Иванович">
+            
+            <label>Пароль (оставьте пустым при первом входе):</label>
+            <input type="password" id="login-pass" placeholder="Ваш пароль">
+            
+            <button onclick="login()">Войти</button>
+            <p style="font-size: 12px; color: #777; text-align: center; margin-top: 15px;">
+                Регистрация новых граждан производится только через Администратора (Арсения).
+            </p>
+        </div>
+
+        <div id="admin-screen" class="box hidden">
+            <h3>Панель Управления <span class="admin-tag">SUPER ADMIN</span></h3>
+            <button class="btn-red" onclick="logout()" style="width: auto; float: right; margin-top: -50px;">Выйти</button>
+            
+            <hr>
+            <h4>Добавить нового гражданина</h4>
+            <input type="text" id="new-fio" placeholder="ФИО гражданина">
+            <input type="text" id="new-passport" placeholder="Серия и номер паспорта">
+            <input type="text" id="new-snils" placeholder="СНИЛС">
+            <button onclick="createCitizen()">Зарегистрировать в базе</button>
+
+            <hr>
+            <h4>Выписать штраф</h4>
+            <input type="text" id="fine-fio" placeholder="ФИО нарушителя">
+            <input type="number" id="fine-amount" placeholder="Сумма (₽)">
+            <input type="text" id="fine-reason" placeholder="Причина (например: Превышение скорости)">
+            <button class="btn-red" onclick="issueFine()">Отправить штраф на устройство гражданина</button>
+        </div>
+
+        <div id="citizen-screen" class="box hidden">
+            <h3>Личный Кабинет</h3>
+            <button onclick="logout()" style="width: auto; float: right; margin-top: -50px; background: #777;">Выйти</button>
+            
+            <div style="background: #f4f7f9; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                <p><b>ФИО:</b> <span id="cit-fio"></span></p>
+                <p><b>Паспорт:</b> <span id="cit-passport"></span></p>
+                <p><b>СНИЛС:</b> <span id="cit-snils"></span></p>
+            </div>
+
+            <h4 style="color: #ff4d4f;">Мои штрафы:</h4>
+            <div id="cit-fines">
+                </div>
+        </div>
+
+    </div>
 
     <script>
-        async function createBase() {
-            document.getElementById('result').style.color = '#fff';
-            document.getElementById('result').innerText = "Связываюсь с сервером... Подожди пару секунд...";
+        // Уникальное имя базы данных (работает как частота на рации)
+        const THING_NAME = "gosbaza-arsik-super-system-2026";
+        let currentUser = null;
+        let updateTimer = null;
+
+        // --- БЛОК СВЯЗИ С СЕРВЕРОМ ---
+        async function getDB() {
+            document.getElementById('loading').style.display = 'block';
             try {
-                const res = await fetch('https://api.npoint.io/', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        "users": [
-                            { "fio": "Арсений", "password": "676767", "role": "admin" }
-                        ],
-                        "fines": []
-                    })
-                });
+                const res = await fetch(`https://dweet.io/get/latest/dweet/for/${THING_NAME}`, {cache: 'no-store'});
                 const data = await res.json();
-                document.getElementById('result').style.color = '#4caf50';
-                document.getElementById('result').innerHTML = `
-                    ✅ База успешно создана!<br><br>
-                    Твой новый ID:<br>
-                    <b style="font-size: 28px; color: #ffeb3b; user-select: all;">${data.id}</b><br><br>
-                    Скопируй этот ID, верни в index.html код ГосБазы и вставь его в строку API_URL.
-                `;
-            } catch (e) {
-                document.getElementById('result').style.color = '#ff4d4f';
-                document.getElementById('result').innerText = "Ошибка! Похоже, сервер npoint полностью заблокирован для твоего интернета. Напиши мне, и мы заменим его на другой сервис.";
+                document.getElementById('loading').style.display = 'none';
+                
+                // Если база уже существует на сервере
+                if (data && data.with && data.with.length > 0) {
+                    return data.with[0].content;
+                }
+            } catch(e) { console.error("Ошибка сети"); }
+            
+            document.getElementById('loading').style.display = 'none';
+            // Если базы нет (первый запуск), создаем её на лету
+            return {
+                users: [{ fio: "Арсений", password: "676767", role: "admin" }],
+                fines: []
+            };
+        }
+
+        async function saveDB(db) {
+            document.getElementById('loading').style.display = 'block';
+            await fetch(`https://dweet.io/dweet/for/${THING_NAME}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(db)
+            });
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function hideAll() {
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('admin-screen').classList.add('hidden');
+            document.getElementById('citizen-screen').classList.add('hidden');
+        }
+
+        // --- ЛОГИКА ВХОДА ---
+        async function login() {
+            const fio = document.getElementById('login-fio').value.trim();
+            const pass = document.getElementById('login-pass').value;
+
+            if (!fio) return alert("Введите ФИО!");
+
+            const db = await getDB();
+            const user = db.users.find(u => u.fio === fio);
+
+            if (!user) {
+                return alert("Ошибка: Вас нет в базе данных! Обратитесь к Администратору.");
             }
+
+            // Вход Админа
+            if (user.role === 'admin') {
+                if (pass === user.password) {
+                    hideAll();
+                    document.getElementById('admin-screen').classList.remove('hidden');
+                } else {
+                    alert("Неверный пароль администратора!");
+                }
+                return;
+            }
+
+            // Вход Гражданина
+            if (!user.password) {
+                const newPass = prompt("Приветствуем! Придумайте и введите пароль для вашего аккаунта:");
+                if (newPass) {
+                    user.password = newPass;
+                    await saveDB(db); // Сохраняем пароль на сервер
+                    alert("Пароль успешно установлен!");
+                    startCitizenSession(user);
+                }
+            } else {
+                if (pass === user.password) {
+                    startCitizenSession(user);
+                } else {
+                    alert("Неверный пароль! Попробуйте еще раз.");
+                }
+            }
+        }
+
+        // --- ПАНЕЛЬ АДМИНА ---
+        async function createCitizen() {
+            const fio = document.getElementById('new-fio').value.trim();
+            const passport = document.getElementById('new-passport').value;
+            const snils = document.getElementById('new-snils').value;
+
+            if (!fio || !passport) return alert("ФИО и Паспорт обязательны!");
+            
+            const db = await getDB(); 
+            if (db.users.find(u => u.fio === fio)) return alert("Гражданин с таким ФИО уже существует!");
+
+            db.users.push({ fio, passport, snils, password: null, role: 'citizen' });
+            await saveDB(db); 
+            
+            document.getElementById('new-fio').value = '';
+            document.getElementById('new-passport').value = '';
+            document.getElementById('new-snils').value = '';
+            alert("Гражданин " + fio + " успешно внесен в онлайн-базу!");
+        }
+
+        async function issueFine() {
+            const fio = document.getElementById('fine-fio').value.trim();
+            const amount = document.getElementById('fine-amount').value;
+            const reason = document.getElementById('fine-reason').value;
+
+            const db = await getDB();
+            if (!db.users.find(u => u.fio === fio)) return alert("Ошибка: Такого гражданина нет в базе!");
+            
+            db.fines.push({ fio, amount, reason, date: new Date().toLocaleDateString() });
+            await saveDB(db);
+            
+            document.getElementById('fine-amount').value = '';
+            document.getElementById('fine-reason').value = '';
+            alert("Штраф отправлен на сервер!");
+        }
+
+        // --- ПАНЕЛЬ ГРАЖДАНИНА ---
+        function startCitizenSession(user) {
+            currentUser = user;
+            hideAll();
+            document.getElementById('citizen-screen').classList.remove('hidden');
+            
+            document.getElementById('cit-fio').innerText = user.fio;
+            document.getElementById('cit-passport').innerText = user.passport || 'Не указан';
+            document.getElementById('cit-snils').innerText = user.snils || 'Не указан';
+
+            loadMyFines();
+            // Обновляем штрафы каждые 3 секунды
+            updateTimer = setInterval(loadMyFines, 3000);
+        }
+
+        async function loadMyFines() {
+            if (!currentUser) return;
+            const db = await getDB();
+            
+            const myFines = db.fines.filter(f => f.fio === currentUser.fio);
+            const finesDiv = document.getElementById('cit-fines');
+            
+            if (myFines.length === 0) {
+                finesDiv.innerHTML = '<p style="color: green;">У вас нет неоплаченных штрафов.</p>';
+            } else {
+                finesDiv.innerHTML = myFines.map(f => `
+                    <div class="fine-card">
+                        <b>Сумма: ${f.amount} ₽</b><br>
+                        <span style="color: #666; font-size: 14px;">Причина: ${f.reason} (от ${f.date})</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            clearInterval(updateTimer); 
+            hideAll();
+            document.getElementById('auth-screen').classList.remove('hidden');
+            document.getElementById('login-fio').value = '';
+            document.getElementById('login-pass').value = '';
         }
     </script>
 </body>
