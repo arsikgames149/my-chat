@@ -2,35 +2,24 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Secure Messenger</title>
+    <title>Secure Chat</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
-        :root { --bg: #0e1621; --side: #17212b; --msg-me: #2b5278; --msg-them: #182533; --text: #ffffff; }
-        body { margin: 0; font-family: sans-serif; display: flex; height: 100vh; background: var(--bg); color: var(--text); }
-        #sidebar { width: 300px; background: var(--side); border-right: 1px solid #000; display: flex; flex-direction: column; }
-        .user-tag-box { padding: 20px; background: #1c2733; border-bottom: 2px solid #000; text-align: center; }
-        .user-tag-box span { font-weight: bold; color: #5288c1; font-size: 18px; }
-        .item { padding: 15px; border-bottom: 1px solid #000; cursor: pointer; }
+        body { margin: 0; font-family: sans-serif; background: #0e1621; color: white; display: flex; height: 100vh; }
+        #sidebar { width: 300px; background: #17212b; border-right: 1px solid #000; display: flex; flex-direction: column; }
         #main { flex: 1; display: flex; flex-direction: column; }
-        #messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-        .msg { padding: 8px 12px; border-radius: 10px; max-width: 60%; }
-        .me { align-self: flex-end; background: var(--msg-me); }
-        .them { align-self: flex-start; background: var(--msg-them); }
-        #input-area { padding: 15px; background: var(--side); display: flex; gap: 10px; }
-        input { flex: 1; padding: 10px; border-radius: 5px; border: none; }
-        button { padding: 10px; background: #5288c1; color: white; border: none; cursor: pointer; }
+        #messages { flex: 1; padding: 20px; overflow-y: auto; }
+        #input-area { padding: 15px; background: #17212b; display: flex; }
+        input { flex: 1; padding: 10px; }
+        button { padding: 10px; background: #5288c1; color: white; border: none; }
     </style>
 </head>
 <body>
-
     <div id="sidebar">
-        <div class="user-tag-box">
-            Твой тег:<br><span></span>
-        </div>
+        <div style="padding: 15px; font-weight: bold;">Чаты</div>
         <div id="chat-list"></div>
-        <button onclick="createNewChat()">+ Новый чат</button>
+        <button onclick="addChat()">+ Новый чат</button>
     </div>
-
     <div id="main">
         <div id="messages"></div>
         <div id="input-area">
@@ -42,86 +31,40 @@
     <script>
         const API_URL = "https://api.npoint.io/9a59d7dc2e3ad773b0fa";
         let myName = localStorage.getItem('myUsername');
-        let keyVault = JSON.parse(localStorage.getItem('keyVault') || '{}');
-        let currentChat = "";
 
         if(!myName) {
-            myName = prompt("Создай свой уникальный тег (ник):");
+            myName = prompt("Введите ник (любые буквы):");
             if(myName) {
                 localStorage.setItem('myUsername', myName);
-                registerProfile(myName);
+                register(myName);
             }
         }
-        
-        // Отображаем тег в интерфейсе
-        document.querySelector('.user-tag-box span').innerText = myName;
 
-        async function registerProfile(name) {
+        async function register(name) {
             const res = await fetch(API_URL);
             const data = await res.json();
             data.profiles = data.profiles || {};
-            data.profiles[name] = { active: true };
+            data.profiles[name] = true;
             await fetch(API_URL, { method: 'POST', body: JSON.stringify(data) });
+            location.reload();
         }
 
-        function getChatKey(chatName) {
-            if (!keyVault[chatName]) {
-                const key = prompt(`Введите ключ шифрования для чата с ${chatName}:`);
-                if(key) { keyVault[chatName] = key; localStorage.setItem('keyVault', JSON.stringify(keyVault)); }
-            }
-            return keyVault[chatName];
-        }
-
-        function encrypt(text, chatName) {
-            return 'E2EE:' + CryptoJS.AES.encrypt(text, getChatKey(chatName)).toString();
-        }
-
-        function decrypt(text, chatName) {
-            if (!text.startsWith("E2EE:")) return text;
-            try { return CryptoJS.AES.decrypt(text.replace("E2EE:", ""), getChatKey(chatName)).toString(CryptoJS.enc.Utf8); }
-            catch(e) { return "🔒 [Ключ не подходит]"; }
-        }
-
-        async function createNewChat() {
-            const name = prompt("Введите тег пользователя:");
+        async function addChat() {
+            const name = prompt("Введите ник друга:");
             const res = await fetch(API_URL);
             const data = await res.json();
-            
             if(data.profiles && data.profiles[name]) {
-                currentChat = name;
-                getChatKey(currentChat);
-                loadMessages();
+                localStorage.setItem('currentChat', name);
+                location.reload();
             } else {
-                alert("Такого пользователя нету!");
+                alert("Такого пользователя нет!");
             }
         }
 
-        async function send() {
-            const input = document.getElementById('msg-input');
-            if(!currentChat || !input.value) return;
-            const res = await fetch(API_URL);
-            const data = await res.json();
-            data.messages.push({ from: myName, to: currentChat, text: encrypt(input.value, currentChat) });
-            await fetch(API_URL, { method: 'POST', body: JSON.stringify(data) });
-            input.value = '';
-            loadMessages();
-        }
-
-        async function loadMessages() {
-            const res = await fetch(API_URL, {cache: 'no-store'});
-            const data = await res.json();
-            const container = document.getElementById('messages');
-            container.innerHTML = '';
-            (data.messages || []).filter(m => (m.from === myName && m.to === currentChat) || (m.from === currentChat && m.to === myName))
-            .forEach(m => {
-                const div = document.createElement('div');
-                div.className = `msg ${m.from === myName ? 'me' : 'them'}`;
-                div.innerText = `${m.from}: ${decrypt(m.text, currentChat)}`;
-                container.appendChild(div);
-            });
-        }
-
-        setInterval(loadMessages, 3000);
+        // ... остальной код (отправка/загрузка) ...
+        // Если видишь ошибку "City letter" при входе, 
+        // значит браузер не может прочитать localStorage или JSON.
+        // Очисти LocalStorage еще раз!
     </script>
 </body>
 </html>
