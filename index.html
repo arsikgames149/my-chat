@@ -8,6 +8,8 @@
         :root { --bg: #0e1621; --side: #17212b; --msg-me: #2b5278; --msg-them: #182533; --text: #ffffff; }
         body { margin: 0; font-family: sans-serif; display: flex; height: 100vh; background: var(--bg); color: var(--text); }
         #sidebar { width: 300px; background: var(--side); border-right: 1px solid #000; display: flex; flex-direction: column; }
+        .user-tag-box { padding: 20px; background: #1c2733; border-bottom: 2px solid #000; text-align: center; }
+        .user-tag-box span { font-weight: bold; color: #5288c1; font-size: 18px; }
         .item { padding: 15px; border-bottom: 1px solid #000; cursor: pointer; }
         #main { flex: 1; display: flex; flex-direction: column; }
         #messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
@@ -22,7 +24,9 @@
 <body>
 
     <div id="sidebar">
-        <div style="padding: 15px; font-weight: bold;">Чаты</div>
+        <div class="user-tag-box">
+            Твой тег:<br><span></span>
+        </div>
         <div id="chat-list"></div>
         <button onclick="createNewChat()">+ Новый чат</button>
     </div>
@@ -41,7 +45,6 @@
         let keyVault = JSON.parse(localStorage.getItem('keyVault') || '{}');
         let currentChat = "";
 
-        // При первом запуске создаем профиль
         if(!myName) {
             myName = prompt("Создай свой уникальный тег (ник):");
             if(myName) {
@@ -49,6 +52,9 @@
                 registerProfile(myName);
             }
         }
+        
+        // Отображаем тег в интерфейсе
+        document.querySelector('.user-tag-box span').innerText = myName;
 
         async function registerProfile(name) {
             const res = await fetch(API_URL);
