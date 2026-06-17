@@ -2,113 +2,117 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Secure Chat</title>
+    <title>Secure E2EE Chat</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
-        :root { --bg-main: #0e1621; --bg-side: #17212b; --bg-panel: #242f3d; --text: #ffffff; --msg-me: #2b5278; --msg-them: #182533; --btn: #5288c1; }
-        body { margin: 0; font-family: sans-serif; display: flex; height: 100vh; background: var(--bg-main); color: var(--text); overflow: hidden; }
-        #sidebar { width: 300px; background: var(--bg-side); border-right: 1px solid #000; display: flex; flex-direction: column; }
+        :root { --bg: #0e1621; --side: #17212b; --msg-me: #2b5278; --msg-them: #182533; --text: #ffffff; }
+        body { margin: 0; font-family: sans-serif; display: flex; height: 100vh; background: var(--bg); color: var(--text); }
+        #sidebar { width: 300px; background: var(--side); border-right: 1px solid #000; display: flex; flex-direction: column; }
         #chat-list { flex: 1; overflow-y: auto; }
-        .chat-item { padding: 15px; border-bottom: 1px solid #000; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+        .chat-item { padding: 15px; border-bottom: 1px solid #000; cursor: pointer; }
         .chat-item:hover { background: #202b36; }
-        .chat-item.active { background: var(--btn); }
-        .avatar { width: 40px; height: 40px; background: var(--btn); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; }
-        #main-area { flex: 1; display: flex; flex-direction: column; background: var(--bg-main); }
+        #main { flex: 1; display: flex; flex-direction: column; }
         #messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-        .msg-wrapper { max-width: 60%; display: flex; flex-direction: column; gap: 5px; }
-        .msg-wrapper.me { align-self: flex-end; align-items: flex-end; }
-        .msg { padding: 10px 15px; border-radius: 15px; background: var(--msg-them); }
-        .msg.me { background: var(--msg-me); }
-        #input-area { padding: 15px; background: var(--bg-side); display: flex; gap: 10px; }
-        #msg-input { flex: 1; padding: 10px; border-radius: 10px; border: none; background: var(--bg-panel); color: white; outline: none; }
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-        .modal.hidden { display: none; }
-        .modal-content { background: var(--bg-side); padding: 30px; border-radius: 10px; text-align: center; }
-        input { padding: 10px; margin: 10px 0; border-radius: 5px; border: none; width: 250px; }
-        button { padding: 10px 20px; background: var(--btn); border: none; color: white; border-radius: 5px; cursor: pointer; }
+        .msg { padding: 8px 12px; border-radius: 10px; max-width: 60%; }
+        .me { align-self: flex-end; background: var(--msg-me); }
+        .them { align-self: flex-start; background: var(--msg-them); }
+        #input-area { padding: 15px; background: var(--side); display: flex; gap: 10px; }
+        input { flex: 1; padding: 10px; border-radius: 5px; border: none; }
+        button { padding: 10px 20px; background: #5288c1; color: white; border: none; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <div id="setup-modal" class="modal">
-        <div class="modal-content">
-            <h3>Вход в секретный чат</h3>
-            <input type="text" id="setup-name" placeholder="Твой ник">
-            <button onclick="init()">Войти</button>
-        </div>
-    </div>
-
     <div id="sidebar">
-        <div style="padding: 20px; font-weight: bold;">Мои чаты</div>
+        <div style="padding: 15px; font-weight: bold;">Чаты</div>
         <div id="chat-list"></div>
+        <button onclick="createNewChat()">+ Новый чат</button>
     </div>
 
-    <div id="main-area">
+    <div id="main">
         <div id="messages"></div>
         <div id="input-area">
             <input type="text" id="msg-input" placeholder="Сообщение...">
-            <button onclick="sendMessage()">➤</button>
+            <button onclick="send()">➤</button>
         </div>
     </div>
 
     <script>
         const API_URL = "https://api.npoint.io/9a59d7dc2e3ad773b0fa";
-        let myName, currentChat = "General";
+        let myName = localStorage.getItem('myUsername') || prompt("Твой ник:");
+        localStorage.setItem('myUsername', myName);
 
-        function init() {
-            myName = document.getElementById('setup-name').value;
-            if(!myName) return;
-            
-            // Подхватываем ключ из ссылки, если есть
-            const hash = window.location.hash.substring(1);
-            if(hash) {
-                localStorage.setItem('mySecretKey', hash);
-                window.history.replaceState({}, document.title, window.location.pathname);
+        let keyVault = JSON.parse(localStorage.getItem('keyVault') || '{}');
+        let currentChat = "";
+
+        // Управление ключами
+        function getChatKey(chatName) {
+            if (!keyVault[chatName]) {
+                const key = prompt(`Введите секретный ключ для чата с ${chatName}:`);
+                if (key) {
+                    keyVault[chatName] = key;
+                    localStorage.setItem('keyVault', JSON.stringify(keyVault));
+                }
             }
-            
-            document.getElementById('setup-modal').classList.add('hidden');
-            setInterval(fetchData, 2000);
+            return keyVault[chatName];
         }
 
-        async function sendMessage() {
+        // Шифрование и дешифрование
+        function encrypt(text, chatName) {
+            const key = getChatKey(chatName);
+            return 'E2EE:' + CryptoJS.AES.encrypt(text, key).toString();
+        }
+
+        function decrypt(text, chatName) {
+            if (!text.startsWith("E2EE:")) return text;
+            const key = getChatKey(chatName);
+            try {
+                return CryptoJS.AES.decrypt(text.replace("E2EE:", ""), key).toString(CryptoJS.enc.Utf8) || "🔒 Ошибка ключа";
+            } catch(e) { return "🔒 Ошибка ключа"; }
+        }
+
+        async function send() {
             const input = document.getElementById('msg-input');
-            const text = input.value;
-            const key = localStorage.getItem('mySecretKey');
-            
-            if(!key) return alert("Нужен ключ! (Добавь его в ссылку или спроси у друга)");
-            
-            const encrypted = "E2EE:" + CryptoJS.AES.encrypt(text, key).toString();
-            
+            if(!currentChat || !input.value) return;
+
             const res = await fetch(API_URL);
             const data = await res.json();
-            data.messages.push({ from: myName, text: encrypted, time: Date.now() });
-            
-            await fetch(API_URL, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+            data.messages.push({ 
+                from: myName, 
+                to: currentChat, 
+                text: encrypt(input.value, currentChat) 
+            });
+
+            await fetch(API_URL, { method: 'POST', body: JSON.stringify(data) });
             input.value = '';
+            loadMessages();
         }
 
-        async function fetchData() {
+        async function loadMessages() {
             const res = await fetch(API_URL, {cache: 'no-store'});
             const data = await res.json();
             const container = document.getElementById('messages');
-            const key = localStorage.getItem('mySecretKey');
-            
             container.innerHTML = '';
-            data.messages.forEach(m => {
+            
+            data.messages.filter(m => (m.from === myName && m.to === currentChat) || (m.from === currentChat && m.to === myName))
+            .forEach(m => {
                 const div = document.createElement('div');
-                div.className = `msg-wrapper ${m.from === myName ? 'me' : ''}`;
-                
-                let decrypted = "🔒 Зашифровано";
-                if(m.text.startsWith("E2EE:") && key) {
-                    try {
-                        decrypted = CryptoJS.AES.decrypt(m.text.replace("E2EE:", ""), key).toString(CryptoJS.enc.Utf8);
-                    } catch(e) { decrypted = "🔑 Неверный ключ"; }
-                }
-                
-                div.innerHTML = `<div class="msg ${m.from === myName ? 'me' : ''}">${m.from}: ${decrypted}</div>`;
+                div.className = `msg ${m.from === myName ? 'me' : 'them'}`;
+                div.innerText = `${m.from}: ${decrypt(m.text, currentChat)}`;
                 container.appendChild(div);
             });
         }
+
+        function createNewChat() {
+            const name = prompt("Имя друга для чата:");
+            if(name) {
+                currentChat = name;
+                getChatKey(currentChat); // Создаем ключ сразу
+                loadMessages();
+            }
+        }
+
+        setInterval(loadMessages, 3000);
     </script>
 </body>
 </html>
