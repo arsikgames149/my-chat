@@ -93,17 +93,15 @@
     </div>
 
     <script>
-        // Настройки npoint
+        // Твой рабочий ID базы данных
         const BIN_ID = "9a59d7dc2e3ad773b0fa";
         const API_URL = `https://api.npoint.io/${BIN_ID}`;
 
-        // Локальные данные
         let myUsername = localStorage.getItem('myUsername');
         let activeChats = JSON.parse(localStorage.getItem('myChats') || '[]');
         let currentChat = null;
-        let allMessages = []; // Кэш сообщений
+        let allMessages = [];
 
-        // Инициализация
         window.onload = () => {
             if (!myUsername) {
                 document.getElementById('profile-modal').classList.remove('hidden');
@@ -111,16 +109,14 @@
                 document.getElementById('my-name-display').innerText = myUsername;
                 renderChatList();
                 fetchMessages();
-                setInterval(fetchMessages, 3000); // Обновление каждые 3 сек
+                // Запускаем таймер автообновления каждые 2 секунды
+                setInterval(fetchMessages, 2000); 
             }
             
-            // Отправка по Enter
             document.getElementById("msg-input").addEventListener("keypress", function(event) {
                 if (event.key === "Enter") sendMessage();
             });
         };
-
-        // --- ПРОФИЛЬ И ПОИСК ---
 
         function saveProfile() {
             const name = document.getElementById('setup-username').value.trim();
@@ -130,7 +126,7 @@
                 document.getElementById('profile-modal').classList.add('hidden');
                 document.getElementById('my-name-display').innerText = myUsername;
                 fetchMessages();
-                setInterval(fetchMessages, 3000);
+                setInterval(fetchMessages, 2000);
             }
         }
 
@@ -153,12 +149,8 @@
                 closeSearch();
                 openChat(friendName);
                 renderChatList();
-            } else if (friendName === myUsername) {
-                alert("Нельзя создать чат с самим собой!");
             }
         }
-
-        // --- ИНТЕРФЕЙС И ОТРИСОВКА ---
 
         function renderChatList() {
             const list = document.getElementById('chat-list');
@@ -167,30 +159,20 @@
                 const div = document.createElement('div');
                 div.className = `chat-item ${chatName === currentChat ? 'active' : ''}`;
                 div.onclick = () => openChat(chatName);
-                
-                // Берем первую букву для аватарки
                 const letter = chatName.charAt(0).toUpperCase();
-                
-                div.innerHTML = `
-                    <div class="avatar">${letter}</div>
-                    <div style="font-weight:bold;">${chatName}</div>
-                `;
+                div.innerHTML = `<div class="avatar">${letter}</div><div style="font-weight:bold;">${chatName}</div>`;
                 list.appendChild(div);
             });
         }
 
         function openChat(chatName) {
             currentChat = chatName;
-            
-            // Показываем хедер и поле ввода
             document.getElementById('chat-header').classList.remove('hidden');
             document.getElementById('input-area').classList.remove('hidden');
-            
             document.getElementById('header-name').innerText = chatName;
             document.getElementById('header-avatar').innerText = chatName.charAt(0).toUpperCase();
-            
-            renderChatList(); // Обновляем выделение слева
-            renderMessages(); // Рисуем сообщения
+            renderChatList();
+            renderMessages();
         }
 
         function renderMessages() {
@@ -198,7 +180,6 @@
             const container = document.getElementById('messages');
             container.innerHTML = '';
 
-            // Фильтруем сообщения: те, что от меня ему, или от него мне
             const chatHistory = allMessages.filter(m => 
                 (m.from === myUsername && m.to === currentChat) ||
                 (m.from === currentChat && m.to === myUsername)
@@ -217,21 +198,17 @@
                 container.appendChild(div);
             });
 
-            // Прокрутка вниз
             container.scrollTop = container.scrollHeight;
         }
 
-        // --- СЕТЬ (NPOINT) ---
-
         async function fetchMessages() {
             try {
-                const res = await fetch(API_URL);
+                // cache: 'no-store' заставляет браузер всегда качать свежие данные
+                const res = await fetch(API_URL, { cache: 'no-store' });
                 const data = await res.json();
                 allMessages = data.messages || [];
 
                 let chatsUpdated = false;
-
-                // Умная логика: Если кто-то написал мне, но его нет в моем списке слева — добавляем его!
                 allMessages.forEach(m => {
                     if (m.to === myUsername && !activeChats.includes(m.from)) {
                         activeChats.push(m.from);
@@ -257,20 +234,14 @@
             const text = input.value.trim();
             if (text === "" || !currentChat) return;
 
-            // Очищаем поле мгновенно для удобства
             input.value = '';
 
             try {
-                const res = await fetch(API_URL);
+                const res = await fetch(API_URL, { cache: 'no-store' });
                 const data = await res.json();
                 if(!data.messages) data.messages = [];
                 
-                // Добавляем сообщение с указанием отправителя и получателя
-                data.messages.push({ 
-                    from: myUsername, 
-                    to: currentChat, 
-                    text: text 
-                });
+                data.messages.push({ from: myUsername, to: currentChat, text: text });
 
                 await fetch(API_URL, {
                     method: 'POST',
@@ -278,7 +249,6 @@
                     body: JSON.stringify(data)
                 });
 
-                // Сразу обновляем интерфейс
                 fetchMessages();
             } catch (e) {
                 alert("Ошибка отправки! Проверьте интернет.");
