@@ -3,132 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neon Idle Quest</title>
-    <!-- Подключаем шрифт для более игрового вида -->
+    <title>Neon Idle Quest - v1.5.0</title>
     <link href="https://fonts.googleapis.com/css2?family=Jura:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
             font-family: 'Jura', sans-serif;
-            /* Темный атмосферный фон с легким градиентом */
             background: radial-gradient(circle at top, #1e1b4b, #020617);
         }
-
-        /* Пульсация кнопки атаки (как бьющееся сердце или ядро) */
         @keyframes pulse-glow {
             0%, 100% { box-shadow: 0 0 20px rgba(225, 29, 72, 0.4); }
             50% { box-shadow: 0 0 50px rgba(225, 29, 72, 0.8); }
         }
-
-        .core-btn {
-            animation: pulse-glow 3s infinite;
-        }
-
-        .core-btn:active {
-            transform: scale(0.92);
-            box-shadow: 0 0 10px rgba(225, 29, 72, 0.9);
-            transition: all 0.05s ease-out;
-        }
-
-        /* Кастомный тонкий скроллбар */
+        .core-btn { animation: pulse-glow 3s infinite; }
+        .core-btn:active { transform: scale(0.92); box-shadow: 0 0 10px rgba(225, 29, 72, 0.9); transition: all 0.05s ease-out; }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #6366f1; }
-
-        /* Эффект глассморфизма для панелей */
-        .glass-panel {
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
+        .glass-panel { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        
+        /* Цвета редкости для предметов */
+        .rarity-common { border-color: #94a3b8; background: rgba(148, 163, 184, 0.1); text-shadow: 0 0 5px #94a3b8; }
+        .rarity-rare { border-color: #3b82f6; background: rgba(59, 130, 246, 0.1); text-shadow: 0 0 5px #3b82f6; }
+        .rarity-epic { border-color: #a855f7; background: rgba(168, 85, 247, 0.1); text-shadow: 0 0 5px #a855f7; }
+        .equipped-item { box-shadow: inset 0 0 15px rgba(34, 197, 94, 0.6), 0 0 10px rgba(34, 197, 94, 0.4) !important; border-color: #22c55e !important; }
     </style>
 </head>
-<body class="text-gray-200 h-screen flex flex-col select-none overflow-hidden">
+<body class="text-gray-200 h-screen flex flex-col select-none overflow-hidden p-4 gap-4">
 
-    <!-- Верхняя панель (Хедер) -->
-    <header class="glass-panel p-4 flex justify-between items-center z-10 shadow-lg shadow-indigo-900/20 m-4 rounded-2xl">
+    <header class="glass-panel p-4 flex justify-between items-center shadow-lg shadow-indigo-900/20 rounded-2xl">
         <div class="flex items-center gap-4">
             <div class="bg-indigo-600 w-12 h-12 rounded-full flex items-center justify-center font-bold text-xl shadow-[0_0_15px_rgba(79,70,229,0.5)]">
                 <span id="hero-level">1</span>
             </div>
-            <h1 class="text-xl font-bold tracking-widest text-indigo-200 uppercase">Уровень Героя</h1>
+            <div>
+                <h1 class="text-xl font-bold tracking-widest text-indigo-200 uppercase">Синхронизация ИИ</h1>
+                <p class="text-xs text-gray-400">Версия обновления: 1.5.0</p>
+            </div>
         </div>
         <div class="bg-slate-900/80 px-6 py-2 rounded-xl border border-yellow-500/30 shadow-[0_0_10px_rgba(234,179,8,0.2)] text-2xl font-bold text-yellow-400">
             <span class="text-yellow-600 mr-2">💰</span><span id="gold-display">0</span>
         </div>
     </header>
 
-    <!-- Основной интерфейс -->
-    <main class="flex-1 flex gap-6 px-4 pb-4 overflow-hidden">
+    <div class="flex-1 flex gap-4 overflow-hidden min-h-0">
         
-        <!-- Левая панель: Зона битвы -->
-        <section class="glass-panel w-1/2 flex flex-col items-center justify-center rounded-3xl relative">
-            <!-- Информация о враге -->
-            <div class="absolute top-8 w-full px-12 flex flex-col items-center">
-                <h2 class="text-4xl font-bold mb-4 text-rose-400 tracking-wider drop-shadow-md" id="enemy-name">Гоблин-разведчик</h2>
-                
-                <!-- Красивая полоска ХП -->
-                <div class="w-full bg-slate-900 h-8 rounded-full p-1 border border-slate-700 relative shadow-inner">
-                    <div id="enemy-health-bar" class="bg-gradient-to-r from-rose-700 to-rose-400 h-full rounded-full transition-all duration-200 ease-out shadow-[0_0_15px_rgba(225,29,72,0.5)]"></div>
-                    <div class="absolute inset-0 flex items-center justify-center font-bold text-white drop-shadow-md text-sm">
+        <section class="glass-panel w-1/2 flex flex-col items-center justify-center rounded-3xl relative p-6">
+            <div class="absolute top-6 w-full px-12 flex flex-col items-center">
+                <h2 class="text-3xl font-bold mb-3 text-rose-400 tracking-wider" id="enemy-name">Синтетик-страж</h2>
+                <div class="w-full bg-slate-900 h-6 rounded-full p-1 border border-slate-700 relative shadow-inner">
+                    <div id="enemy-health-bar" class="bg-gradient-to-r from-rose-700 to-rose-400 h-full rounded-full transition-all duration-100 shadow-[0_0_15px_rgba(225,29,72,0.5)]"></div>
+                    <div class="absolute inset-0 flex items-center justify-center font-bold text-white text-xs drop-shadow">
                         <span id="enemy-health-text">50 / 50</span>
                     </div>
                 </div>
             </div>
             
-            <!-- Ядро / Кнопка атаки -->
-            <button id="click-target" class="core-btn w-64 h-64 mt-12 bg-gradient-to-br from-slate-800 to-slate-900 rounded-full border-2 border-rose-500/50 flex items-center justify-center transition-all cursor-pointer group">
-                <div class="w-56 h-56 rounded-full border border-rose-500/20 flex items-center justify-center bg-slate-900/50 group-hover:bg-rose-900/20 transition-colors">
-                    <span class="text-3xl font-bold text-rose-500 tracking-widest group-hover:scale-110 transition-transform">АТАКА</span>
+            <button id="click-target" class="core-btn w-52 h-52 bg-gradient-to-br from-slate-800 to-slate-900 rounded-full border-2 border-rose-500/50 flex items-center justify-center cursor-pointer group">
+                <div class="w-44 h-44 rounded-full border border-rose-500/20 flex items-center justify-center bg-slate-900/50 group-hover:bg-rose-900/20 transition-colors">
+                    <span class="text-2xl font-bold text-rose-500 tracking-widest group-hover:scale-110 transition-transform">УДАР</span>
                 </div>
             </button>
 
-            <!-- Статистика урона -->
-            <div class="absolute bottom-8 flex gap-8">
-                <div class="bg-slate-800/80 px-6 py-3 rounded-xl border border-slate-700 text-center">
-                    <p class="text-slate-400 text-sm uppercase">Урон за клик</p>
-                    <p class="text-2xl font-bold text-indigo-400" id="click-damage-display">1</p>
+            <div class="absolute bottom-6 flex gap-4 w-11/12 justify-center">
+                <div class="bg-slate-800/80 px-4 py-2 rounded-xl border border-slate-700 text-center flex-1">
+                    <p class="text-slate-400 text-xs uppercase">Клик</p>
+                    <p class="text-xl font-bold text-indigo-400"><span id="click-damage-display">1</span> <span class="text-xs text-green-400" id="bonus-damage-display">(+0)</span></p>
                 </div>
-                <div class="bg-slate-800/80 px-6 py-3 rounded-xl border border-slate-700 text-center">
-                    <p class="text-slate-400 text-sm uppercase">DPS (Авто)</p>
-                    <p class="text-2xl font-bold text-emerald-400" id="dps-display">0</p>
+                <div class="bg-slate-800/80 px-4 py-2 rounded-xl border border-slate-700 text-center flex-1">
+                    <p class="text-slate-400 text-xs uppercase">DPS Авто</p>
+                    <p class="text-xl font-bold text-emerald-400" id="dps-display">0</p>
                 </div>
             </div>
         </section>
 
-        <!-- Правая панель: Терминал магазина -->
         <section class="glass-panel w-1/2 rounded-3xl p-6 flex flex-col">
-            <div class="flex justify-between items-center mb-6 pb-4 border-b border-indigo-500/30">
-                <h2 class="text-2xl font-bold text-indigo-300 tracking-widest uppercase">Арсенал</h2>
-                <button id="reset-btn" class="text-xs bg-rose-950/50 border border-rose-800 hover:bg-rose-900 hover:border-rose-500 text-rose-300 px-4 py-2 rounded-lg transition-all">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-indigo-500/30">
+                <h2 class="text-xl font-bold text-indigo-300 tracking-widest uppercase">Арсенал</h2>
+                <button id="reset-btn" class="text-[10px] bg-rose-950/50 border border-rose-800 hover:bg-rose-900 text-rose-300 px-3 py-1 rounded-lg transition-all">
                     СБРОС СИСТЕМЫ
                 </button>
             </div>
-            
-            <!-- Контейнер для карточек магазина -->
-            <div id="shop-container" class="space-y-4 overflow-y-auto pr-2 pb-4">
-                <!-- Сюда JS рендерит карточки товаров -->
-            </div>
+            <div id="shop-container" class="space-y-3 overflow-y-auto pr-1 flex-1"></div>
         </section>
-    </main>
+    </div>
 
-    <!-- Игровая логика -->
+    <footer class="glass-panel p-4 rounded-2xl flex flex-col h-44 shrink-0 shadow-inner">
+        <h2 class="text-sm font-bold text-emerald-400 uppercase tracking-widest mb-2 flex justify-between items-center">
+            <span>Модульный инвентарь (Кликни на вещь, чтобы экипировать)</span>
+            <span class="text-xs text-gray-400" id="inv-count">0 / 8</span>
+        </h2>
+        <div id="inventory-container" class="flex gap-3 overflow-x-auto items-center h-full pb-1">
+            </div>
+    </footer>
+
     <script>
         const DEFAULT_UPGRADES = [
-            { id: 'sword1', name: "Неоновый клинок", type: "click", value: 1, baseCost: 15, currentCost: 15, count: 0, desc: "+1 к урону за клик" },
-            { id: 'sword2', name: "Плазменный резак", type: "click", value: 5, baseCost: 100, currentCost: 100, count: 0, desc: "+5 к урону за клик" },
+            { id: 'sword1', name: "Неоновый клинок", type: "click", value: 1, baseCost: 15, currentCost: 15, count: 0, desc: "+1 к базовому клику" },
+            { id: 'sword2', name: "Плазменный резак", type: "click", value: 5, baseCost: 100, currentCost: 100, count: 0, desc: "+5 к базовому клику" },
             { id: 'mercenary1', name: "Дрон-штурмовик", type: "auto", value: 1, baseCost: 50, currentCost: 50, count: 0, desc: "+1 урон в сек (Авто)" },
             { id: 'mercenary2', name: "Кибер-наемник", type: "auto", value: 8, baseCost: 400, currentCost: 400, count: 0, desc: "+8 урона в сек (Авто)" }
         ];
 
+        // База возможного дропа
+        const LOOT_POOL = [
+            { name: "Чип Фокусировки", rarity: "common", bonus: 2 },
+            { name: "Лазерный Прицел", rarity: "common", bonus: 4 },
+            { name: "Ускоритель Частиц", rarity: "rare", bonus: 10 },
+            { name: "Гипер-Привод", rarity: "rare", bonus: 25 },
+            { name: "Ядро Сверхновой", rarity: "epic", bonus: 75 },
+            { name: "МАТРИЦА СМЕРТИ", rarity: "epic", bonus: 200 }
+        ];
+
         const game = {
-            gold: 0, clickDamage: 1, autoDps: 0, heroLevel: 1, enemiesDefeated: 0,
+            gold: 0, baseClickDamage: 1, bonusClickDamage: 0, clickDamage: 1, autoDps: 0, heroLevel: 1, enemiesDefeated: 0,
             enemy: { name: "Синтетик-страж", maxHealth: 50, currentHealth: 50, reward: 10 },
             upgrades: [],
+            inventory: [], // Наш рюкзак
 
             init: function() {
-                this.loadGame(); this.registerEvents(); this.updateUI(); this.renderShop();
+                this.loadGame(); this.registerEvents(); this.recalculateStats(); this.updateUI(); this.renderShop(); this.renderInventory();
                 setInterval(() => this.tick(), 100);
                 setInterval(() => this.saveGame(), 10000);
             },
@@ -136,7 +130,7 @@
             registerEvents: function() {
                 document.getElementById('click-target').addEventListener('click', () => this.attack());
                 document.getElementById('reset-btn').addEventListener('click', () => {
-                    if(confirm("Внимание! Весь прогресс будет удален. Продолжить?")) this.resetGame();
+                    if(confirm("Внимание! Весь прогресс и инвентарь будут удалены. Сбросить?")) this.resetGame();
                 });
             },
 
@@ -153,12 +147,52 @@
                 this.enemiesDefeated++;
                 this.heroLevel = Math.floor(this.enemiesDefeated / 5) + 1;
 
+                // Расчет шанса выпадения шмотки (30%)
+                if (Math.random() < 0.3 && this.inventory.length < 8) {
+                    this.dropLoot();
+                }
+
                 this.enemy.maxHealth = Math.floor(50 * Math.pow(1.25, this.heroLevel - 1));
                 this.enemy.currentHealth = this.enemy.maxHealth;
                 this.enemy.reward = Math.floor(10 * Math.pow(1.2, this.heroLevel - 1));
                 
                 const names = ["Синтетик-страж", "Боевой мех", "Бронированный Голиаф", "ИИ-Цербер", "Левиафан Сети"];
                 this.enemy.name = names[Math.min(Math.floor((this.heroLevel - 1) / 2), names.length - 1)];
+            },
+
+            dropLoot: function() {
+                // Шансы редкости: 65% Common, 25% Rare, 10% Epic
+                let rand = Math.random();
+                let targetRarity = "common";
+                if (rand > 0.9) targetRarity = "epic";
+                else if (rand > 0.65) targetRarity = "rare";
+
+                let filteredPool = LOOT_POOL.filter(item => item.rarity === targetRarity);
+                let itemTemplate = filteredPool[Math.floor(Math.random() * filteredPool.length)];
+
+                // Создаем уникальный экземпляр шмотки
+                let newItem = {
+                    id: 'item_' + Date.now() + '_' + Math.floor(Math.random()*1000),
+                    name: itemTemplate.name,
+                    rarity: itemTemplate.rarity,
+                    bonus: itemTemplate.bonus,
+                    equipped: false
+                };
+
+                this.inventory.push(newItem);
+                this.renderInventory();
+                this.saveGame();
+            },
+
+            toggleEquip: function(itemId) {
+                let item = this.inventory.find(i => i.id === itemId);
+                if (item) {
+                    item.equipped = !item.equipped;
+                    this.recalculateStats();
+                    this.renderInventory();
+                    this.updateUI();
+                    this.saveGame();
+                }
             },
 
             buyUpgrade: function(index) {
@@ -173,11 +207,19 @@
             },
 
             recalculateStats: function() {
-                this.clickDamage = 1; this.autoDps = 0;
+                this.baseClickDamage = 1; this.autoDps = 0;
                 this.upgrades.forEach(upg => {
-                    if (upg.type === "click") this.clickDamage += (upg.value * upg.count);
+                    if (upg.type === "click") this.baseClickDamage += (upg.value * upg.count);
                     if (upg.type === "auto") this.autoDps += (upg.value * upg.count);
                 });
+
+                // Считаем бонусы от экипированного лута
+                this.bonusClickDamage = 0;
+                this.inventory.forEach(item => {
+                    if (item.equipped) this.bonusClickDamage += item.bonus;
+                });
+
+                this.clickDamage = this.baseClickDamage + this.bonusClickDamage;
             },
 
             tick: function() {
@@ -187,10 +229,12 @@
 
             updateUI: function() {
                 document.getElementById('gold-display').innerText = Math.floor(this.gold);
-                document.getElementById('click-damage-display').innerText = this.clickDamage;
+                document.getElementById('click-damage-display').innerText = this.baseClickDamage;
+                document.getElementById('bonus-damage-display').innerText = `(+${this.bonusClickDamage})`;
                 document.getElementById('dps-display').innerText = this.autoDps;
                 document.getElementById('hero-level').innerText = this.heroLevel;
                 document.getElementById('enemy-name').innerText = this.enemy.name;
+                document.getElementById('inv-count').innerText = `${this.inventory.length} / 8`;
                 
                 let hpPercent = Math.max(0, (this.enemy.currentHealth / this.enemy.maxHealth) * 100);
                 document.getElementById('enemy-health-bar').style.width = hpPercent + '%';
@@ -198,17 +242,15 @@
             },
 
             renderShop: function() {
-                const container = document.getElementById('shop-container');
-                container.innerHTML = '';
-                
+                const container = document.getElementById('shop-container'); container.innerHTML = '';
                 this.upgrades.forEach((upg, index) => {
                     container.innerHTML += `
-                        <div class="bg-slate-800/60 p-5 rounded-2xl flex justify-between items-center border border-slate-700/50 hover:border-indigo-500/50 transition-colors group">
+                        <div class="bg-slate-800/60 p-4 rounded-xl flex justify-between items-center border border-slate-700/50 hover:border-indigo-500/50 transition-colors">
                             <div>
-                                <h3 class="text-lg font-bold text-gray-100">${upg.name} <span class="text-xs bg-indigo-900 text-indigo-300 px-2 py-1 rounded-md ml-2">Ур. ${upg.count}</span></h3>
-                                <p class="text-sm text-slate-400 mt-1">${upg.desc}</p>
+                                <h3 class="text-sm font-bold text-gray-100">${upg.name} <span class="text-xs bg-indigo-900 text-indigo-300 px-2 py-0.5 rounded ml-2">Ур. ${upg.count}</span></h3>
+                                <p class="text-xs text-slate-400 mt-0.5">${upg.desc}</p>
                             </div>
-                            <button data-index="${index}" onclick="game.buyUpgrade(${index})" class="shop-btn px-6 py-3 font-bold rounded-xl text-white transition-all transform active:scale-95 border-b-4">
+                            <button data-index="${index}" onclick="game.buyUpgrade(${index})" class="shop-btn px-4 py-2 font-bold rounded-lg text-xs text-white transition-all transform active:scale-95 border-b-4">
                                 ${upg.currentCost} 💰
                             </button>
                         </div>
@@ -220,35 +262,65 @@
             updateShopButtons: function() {
                 const buttons = document.querySelectorAll('.shop-btn');
                 buttons.forEach(btn => {
-                    const index = btn.getAttribute('data-index');
-                    const upgrade = this.upgrades[index];
+                    const index = btn.getAttribute('data-index'); const upgrade = this.upgrades[index];
                     if (this.gold >= upgrade.currentCost) {
-                        btn.className = "shop-btn px-6 py-3 font-bold rounded-xl text-white bg-indigo-600 hover:bg-indigo-500 border-indigo-800 hover:border-indigo-700 cursor-pointer shadow-[0_0_15px_rgba(79,70,229,0.3)] transition-all";
+                        btn.className = "shop-btn px-4 py-2 font-bold rounded-lg text-xs text-white bg-indigo-600 hover:bg-indigo-500 border-indigo-800 hover:border-indigo-700 cursor-pointer shadow-md transition-all";
                     } else {
-                        btn.className = "shop-btn px-6 py-3 font-bold rounded-xl text-slate-500 bg-slate-800 border-slate-900 cursor-not-allowed opacity-60";
+                        btn.className = "shop-btn px-4 py-2 font-bold rounded-lg text-xs text-slate-500 bg-slate-800 border-slate-900 cursor-not-allowed opacity-60";
                     }
                 });
             },
 
+            renderInventory: function() {
+                const container = document.getElementById('inventory-container');
+                container.innerHTML = '';
+
+                // Отрисовываем предметы
+                this.inventory.forEach(item => {
+                    let rarityClass = `rarity-${item.rarity}`;
+                    let equipClass = item.equipped ? 'equipped-item' : '';
+                    let label = item.equipped ? 'ЭКИП' : 'В СЛОТЕ';
+
+                    container.innerHTML += `
+                        <div onclick="game.toggleEquip('${item.id}')" class="w-28 h-28 shrink-0 rounded-xl border-2 p-2 flex flex-col justify-between cursor-pointer transition-all transform hover:scale-105 active:scale-95 shadow-md ${rarityClass} ${equipClass}">
+                            <div class="text-[10px] font-bold tracking-tight truncate">${item.name}</div>
+                            <div class="text-xs font-bold text-green-400 text-center">+${item.bonus}⚔️</div>
+                            <div class="text-[8px] text-center opacity-60 font-mono font-bold">${label}</div>
+                        </div>
+                    `;
+                });
+
+                // Пустые заглушки, чтобы сетка инвентаря выглядела аккуратно (всего 8 слотов)
+                for (let i = this.inventory.length; i < 8; i++) {
+                    container.innerHTML += `
+                        <div class="w-28 h-28 shrink-0 rounded-xl border-2 border-dashed border-slate-800 bg-slate-950/20 flex items-center justify-center text-slate-700 text-2xl font-bold">
+                            +
+                        </div>
+                    `;
+                }
+            },
+
             saveGame: function() {
-                const saveData = { gold: this.gold, heroLevel: this.heroLevel, enemiesDefeated: this.enemiesDefeated, enemy: this.enemy, upgrades: this.upgrades };
-                localStorage.setItem('neon_rpg_save', JSON.stringify(saveData));
+                const saveData = { gold: this.gold, heroLevel: this.heroLevel, enemiesDefeated: this.enemiesDefeated, enemy: this.enemy, upgrades: this.upgrades, inventory: this.inventory };
+                localStorage.setItem('neon_rpg_save_v15', JSON.stringify(saveData));
             },
 
             loadGame: function() {
-                const rawData = localStorage.getItem('neon_rpg_save');
+                const rawData = localStorage.getItem('neon_rpg_save_v15');
                 if (rawData) {
                     try {
                         const saved = JSON.parse(rawData);
                         this.gold = saved.gold ?? 0; this.heroLevel = saved.heroLevel ?? 1; this.enemiesDefeated = saved.enemiesDefeated ?? 0;
                         this.enemy = saved.enemy ?? this.enemy; this.upgrades = saved.upgrades ?? JSON.parse(JSON.stringify(DEFAULT_UPGRADES));
-                        this.recalculateStats(); return;
+                        this.inventory = saved.inventory ?? [];
+                        return;
                     } catch(e) { console.error("Ошибка загрузки", e); }
                 }
                 this.upgrades = JSON.parse(JSON.stringify(DEFAULT_UPGRADES));
+                this.inventory = [];
             },
 
-            resetGame: function() { localStorage.removeItem('neon_rpg_save'); location.reload(); }
+            resetGame: function() { localStorage.removeItem('neon_rpg_save_v15'); location.reload(); }
         };
 
         window.onload = () => game.init();
