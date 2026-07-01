@@ -3,252 +3,286 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ГосБаза - Онлайн Портал</title>
+    <title>Idle RPG Quest</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #eef2f5; margin: 0; color: #333; }
-        .header { background: #005bff; color: white; padding: 15px 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-        .container { max-width: 800px; margin: 30px auto; padding: 20px; }
-        .box { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        
-        input { width: 100%; padding: 12px; margin: 8px 0 15px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        button { background: #005bff; color: white; border: none; padding: 12px 20px; border-radius: 5px; cursor: pointer; width: 100%; font-size: 16px; }
-        button:hover { background: #0044cc; }
-        .btn-red { background: #ff4d4f; }
-        .btn-red:hover { background: #d9363e; }
-        
-        .hidden { display: none; }
-        .admin-tag { background: #ff4d4f; color: white; padding: 3px 8px; border-radius: 4px; font-size: 12px; vertical-align: middle; margin-left: 10px; }
-        
-        .fine-card { border-left: 4px solid #ff4d4f; padding: 15px; background: #fffaf9; margin-bottom: 10px; animation: fadeIn 0.5s; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        #loading { text-align: center; color: #005bff; font-weight: bold; margin-bottom: 15px; display: none; }
+        /* Анимация сжатия при клике по монстру */
+        .attack-anim:active {
+            transform: scale(0.96);
+            transition: transform 0.03s ease-out;
+        }
+
+        /* Плавное появление всплывающих цифр урона (для будущих фич) */
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-60px); }
+        }
+
+        /* Кастомный скроллбар для магазина */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
     </style>
 </head>
-<body>
+<body class="bg-gray-900 text-gray-200 font-sans h-screen flex flex-col select-none">
 
-    <div class="header">
-        <h2 style="margin: 0;">🏛️ Государственный Портал (Онлайн)</h2>
-    </div>
+    <!-- Верхняя панель -->
+    <header class="bg-gray-800 p-4 shadow-md flex justify-between items-center border-b border-gray-700">
+        <div>
+            <h1 class="text-2xl font-bold text-blue-400">Уровень героя: <span id="hero-level">1</span></h1>
+        </div>
+        <div class="text-xl font-mono text-yellow-400">
+            Золото: <span id="gold-display">0</span>
+        </div>
+    </header>
 
-    <div class="container">
-        <div id="loading">Связь с сервером...</div>
+    <!-- Основной интерфейс -->
+    <main class="flex-1 flex overflow-hidden">
         
-        <div id="auth-screen" class="box">
-            <h3>Вход в систему</h3>
-            <label>Ваше ФИО:</label>
-            <input type="text" id="login-fio" placeholder="Например: Иванов Иван Иванович">
-            
-            <label>Пароль (оставьте пустым при первом входе):</label>
-            <input type="password" id="login-pass" placeholder="Ваш пароль">
-            
-            <button onclick="login()">Войти</button>
-            <p style="font-size: 12px; color: #777; text-align: center; margin-top: 15px;">
-                Регистрация новых граждан производится только через Администратора (Арсения).
-            </p>
-        </div>
-
-        <div id="admin-screen" class="box hidden">
-            <h3>Панель Управления <span class="admin-tag">SUPER ADMIN</span></h3>
-            <button class="btn-red" onclick="logout()" style="width: auto; float: right; margin-top: -50px;">Выйти</button>
-            
-            <hr>
-            <h4>Добавить нового гражданина</h4>
-            <input type="text" id="new-fio" placeholder="ФИО гражданина">
-            <input type="text" id="new-passport" placeholder="Серия и номер паспорта">
-            <input type="text" id="new-snils" placeholder="СНИЛС">
-            <button onclick="createCitizen()">Зарегистрировать в базе</button>
-
-            <hr>
-            <h4>Выписать штраф</h4>
-            <input type="text" id="fine-fio" placeholder="ФИО нарушителя">
-            <input type="number" id="fine-amount" placeholder="Сумма (₽)">
-            <input type="text" id="fine-reason" placeholder="Причина (например: Превышение скорости)">
-            <button class="btn-red" onclick="issueFine()">Отправить штраф на устройство гражданина</button>
-        </div>
-
-        <div id="citizen-screen" class="box hidden">
-            <h3>Личный Кабинет</h3>
-            <button onclick="logout()" style="width: auto; float: right; margin-top: -50px; background: #777;">Выйти</button>
-            
-            <div style="background: #f4f7f9; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
-                <p><b>ФИО:</b> <span id="cit-fio"></span></p>
-                <p><b>Паспорт:</b> <span id="cit-passport"></span></p>
-                <p><b>СНИЛС:</b> <span id="cit-snils"></span></p>
+        <!-- Левая панель: Босс / Кликер -->
+        <section class="w-1/2 flex flex-col items-center justify-center border-r border-gray-700 p-8 relative">
+            <h2 class="text-3xl font-bold mb-2 text-red-400" id="enemy-name">Гоблин-разведчик</h2>
+            <div class="w-2/3 bg-gray-700 h-6 rounded-full mb-2 overflow-hidden shadow-inner">
+                <div id="enemy-health-bar" class="bg-gradient-to-r from-red-600 to-red-500 h-full w-full transition-all duration-100"></div>
             </div>
+            <p class="mb-8 font-mono text-lg">ХП: <span id="enemy-health-text">50 / 50</span></p>
+            
+            <!-- Кнопка атаки -->
+            <button id="click-target" class="attack-anim w-64 h-64 bg-gray-800 rounded-full border-4 border-gray-600 flex items-center justify-center hover:border-red-500 hover:bg-gray-700 shadow-2xl transition-colors cursor-pointer">
+                <span class="text-2xl font-bold text-gray-400">БИТЬ</span>
+            </button>
 
-            <h4 style="color: #ff4d4f;">Мои штрафы:</h4>
-            <div id="cit-fines">
-                </div>
-        </div>
+            <div class="mt-8 text-center text-gray-400 space-y-1">
+                <p>Урон за клик: <span id="click-damage-display" class="text-white font-bold">1</span></p>
+                <p>Урон в секунду (DPS): <span id="dps-display" class="text-white font-bold">0</span></p>
+            </div>
+        </section>
 
-    </div>
+        <!-- Правая панель: Магазин -->
+        <section class="w-1/2 bg-gray-800 p-6 overflow-y-auto">
+            <div class="flex justify-between items-center mb-6 border-b border-gray-700 pb-2">
+                <h2 class="text-2xl font-bold">Улучшения</h2>
+                <button id="reset-btn" class="text-xs bg-red-900/50 hover:bg-red-700 text-red-200 px-3 py-1 rounded transition-colors">
+                    Сбросить прогресс
+                </button>
+            </div>
+            
+            <div id="shop-container" class="space-y-4">
+                <!-- Сюда JS рендерит карточки товаров -->
+            </div>
+        </section>
+    </main>
 
+    <!-- Наша логика -->
     <script>
-        // Уникальное имя базы данных (работает как частота на рации)
-        const THING_NAME = "gosbaza-arsik-super-system-2026";
-        let currentUser = null;
-        let updateTimer = null;
+        // Конфиг базовых апгрейдов
+        const DEFAULT_UPGRADES = [
+            { id: 'sword1', name: "Ржавый меч", type: "click", value: 1, baseCost: 15, currentCost: 15, count: 0, desc: "+1 к урону за клик" },
+            { id: 'sword2', name: "Стальной палаш", type: "click", value: 5, baseCost: 100, currentCost: 100, count: 0, desc: "+5 к урону за клик" },
+            { id: 'mercenary1', name: "Наемник-новичок", type: "auto", value: 1, baseCost: 50, currentCost: 50, count: 0, desc: "+1 урон в секунду" },
+            { id: 'mercenary2', name: "Рыцарь Авангарда", type: "auto", value: 8, baseCost: 400, currentCost: 400, count: 0, desc: "+8 урона в секунду" }
+        ];
 
-        // --- БЛОК СВЯЗИ С СЕРВЕРОМ ---
-        async function getDB() {
-            document.getElementById('loading').style.display = 'block';
-            try {
-                const res = await fetch(`https://dweet.io/get/latest/dweet/for/${THING_NAME}`, {cache: 'no-store'});
-                const data = await res.json();
-                document.getElementById('loading').style.display = 'none';
+        const game = {
+            gold: 0,
+            clickDamage: 1,
+            autoDps: 0,
+            heroLevel: 1,
+            enemiesDefeated: 0,
+            
+            enemy: {
+                name: "Гоблин-разведчик",
+                maxHealth: 50,
+                currentHealth: 50,
+                reward: 10
+            },
+
+            upgrades: [],
+
+            // Инициализация игры
+            init: function() {
+                this.loadGame();
+                this.registerEvents();
+                this.updateUI();
+                this.renderShop();
                 
-                // Если база уже существует на сервере
-                if (data && data.with && data.with.length > 0) {
-                    return data.with[0].content;
+                // Запуск цикла (10 тиков в секунду)
+                setInterval(() => this.tick(), 100);
+                // Автосохранение каждые 10 секунд
+                setInterval(() => this.saveGame(), 10000);
+            },
+
+            registerEvents: function() {
+                document.getElementById('click-target').addEventListener('click', () => this.attack());
+                document.getElementById('reset-btn').addEventListener('click', () => {
+                    if(confirm("Вы уверены, что хотите полностью сбросить прогресс?")) this.resetGame();
+                });
+            },
+
+            attack: function() {
+                this.dealDamage(this.clickDamage);
+            },
+
+            dealDamage: function(amount) {
+                this.enemy.currentHealth -= amount;
+                if (this.enemy.currentHealth <= 0) {
+                    this.defeatEnemy();
                 }
-            } catch(e) { console.error("Ошибка сети"); }
-            
-            document.getElementById('loading').style.display = 'none';
-            // Если базы нет (первый запуск), создаем её на лету
-            return {
-                users: [{ fio: "Арсений", password: "676767", role: "admin" }],
-                fines: []
-            };
-        }
+                this.updateUI();
+            },
 
-        async function saveDB(db) {
-            document.getElementById('loading').style.display = 'block';
-            await fetch(`https://dweet.io/dweet/for/${THING_NAME}`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(db)
-            });
-            document.getElementById('loading').style.display = 'none';
-        }
+            defeatEnemy: function() {
+                this.gold += this.enemy.reward;
+                this.enemiesDefeated++;
+                
+                // Ап уровня героя каждые 5 убитых мобов
+                this.heroLevel = Math.floor(this.enemiesDefeated / 5) + 1;
 
-        function hideAll() {
-            document.getElementById('auth-screen').classList.add('hidden');
-            document.getElementById('admin-screen').classList.add('hidden');
-            document.getElementById('citizen-screen').classList.add('hidden');
-        }
+                // Масштабирование следующего врага
+                this.enemy.maxHealth = Math.floor(50 * Math.pow(1.25, this.heroLevel - 1));
+                this.enemy.currentHealth = this.enemy.maxHealth;
+                this.enemy.reward = Math.floor(10 * Math.pow(1.2, this.heroLevel - 1));
+                
+                // Маленький пулл имен для разнообразия
+                const names = ["Гоблин", "Орк-налетчик", "Каменный голем", "Темный рыцарь", "Древний Дракон"];
+                this.enemy.name = names[Math.min(Math.floor((this.heroLevel - 1) / 2), names.length - 1)];
+            },
 
-        // --- ЛОГИКА ВХОДА ---
-        async function login() {
-            const fio = document.getElementById('login-fio').value.trim();
-            const pass = document.getElementById('login-pass').value;
+            buyUpgrade: function(index) {
+                let upgrade = this.upgrades[index];
+                if (this.gold >= upgrade.currentCost) {
+                    this.gold -= upgrade.currentCost;
+                    upgrade.count++;
+                    
+                    // Перерасчет характеристик
+                    this.recalculateStats();
 
-            if (!fio) return alert("Введите ФИО!");
-
-            const db = await getDB();
-            const user = db.users.find(u => u.fio === fio);
-
-            if (!user) {
-                return alert("Ошибка: Вас нет в базе данных! Обратитесь к Администратору.");
-            }
-
-            // Вход Админа
-            if (user.role === 'admin') {
-                if (pass === user.password) {
-                    hideAll();
-                    document.getElementById('admin-screen').classList.remove('hidden');
-                } else {
-                    alert("Неверный пароль администратора!");
+                    // Формула роста цены: baseCost * 1.15^count
+                    upgrade.currentCost = Math.floor(upgrade.baseCost * Math.pow(1.15, upgrade.count));
+                    
+                    this.renderShop();
+                    this.updateUI();
+                    this.saveGame(); // Сохраняем при покупке
                 }
-                return;
-            }
+            },
 
-            // Вход Гражданина
-            if (!user.password) {
-                const newPass = prompt("Приветствуем! Придумайте и введите пароль для вашего аккаунта:");
-                if (newPass) {
-                    user.password = newPass;
-                    await saveDB(db); // Сохраняем пароль на сервер
-                    alert("Пароль успешно установлен!");
-                    startCitizenSession(user);
+            recalculateStats: function() {
+                // Сброс до базовых значений
+                this.clickDamage = 1;
+                this.autoDps = 0;
+
+                // Считаем бонусы от всех купленных штук
+                this.upgrades.forEach(upg => {
+                    if (upg.type === "click") this.clickDamage += (upg.value * upg.count);
+                    if (upg.type === "auto") this.autoDps += (upg.value * upg.count);
+                });
+            },
+
+            tick: function() {
+                if (this.autoDps > 0) {
+                    this.dealDamage(this.autoDps / 10);
                 }
-            } else {
-                if (pass === user.password) {
-                    startCitizenSession(user);
-                } else {
-                    alert("Неверный пароль! Попробуйте еще раз.");
+                // Динамически обновляем доступность кнопок в магазине без полного перерендера
+                this.updateShopButtons();
+            },
+
+            updateUI: function() {
+                document.getElementById('gold-display').innerText = Math.floor(this.gold);
+                document.getElementById('click-damage-display').innerText = this.clickDamage;
+                document.getElementById('dps-display').innerText = this.autoDps;
+                document.getElementById('hero-level').innerText = this.heroLevel;
+                document.getElementById('enemy-name').innerText = this.enemy.name;
+                
+                let hpPercent = Math.max(0, (this.enemy.currentHealth / this.enemy.maxHealth) * 100);
+                document.getElementById('enemy-health-bar').style.width = hpPercent + '%';
+                document.getElementById('enemy-health-text').innerText = `${Math.ceil(this.enemy.currentHealth)} / ${this.enemy.maxHealth}`;
+            },
+
+            renderShop: function() {
+                const container = document.getElementById('shop-container');
+                container.innerHTML = '';
+                
+                this.upgrades.forEach((upg, index) => {
+                    container.innerHTML += `
+                        <div class="bg-gray-700 p-4 rounded-lg flex justify-between items-center shadow-lg border border-gray-600/50">
+                            <div>
+                                <h3 class="text-lg font-bold text-white">${upg.name} <span class="text-sm text-blue-400">(Ур. ${upg.count})</span></h3>
+                                <p class="text-sm text-gray-400">${upg.desc}</p>
+                            </div>
+                            <button data-index="${index}" onclick="game.buyUpgrade(${index})" class="shop-btn px-4 py-2 font-bold rounded text-white transition-all transform active:scale-95 shadow">
+                                ${upg.currentCost} Золота
+                            </button>
+                        </div>
+                    `;
+                });
+                this.updateShopButtons();
+            },
+
+            updateShopButtons: function() {
+                const buttons = document.querySelectorAll('.shop-btn');
+                buttons.forEach(btn => {
+                    const index = btn.getAttribute('data-index');
+                    const upgrade = this.upgrades[index];
+                    if (this.gold >= upgrade.currentCost) {
+                        btn.className = "shop-btn px-4 py-2 font-bold rounded text-white bg-blue-600 hover:bg-blue-500 cursor-pointer shadow";
+                    } else {
+                        btn.className = "shop-btn px-4 py-2 font-bold rounded text-gray-400 bg-gray-600 cursor-not-allowed opacity-50 shadow";
+                    }
+                });
+            },
+
+            // Логика сохранения данных
+            saveGame: function() {
+                const saveData = {
+                    gold: this.gold,
+                    heroLevel: this.heroLevel,
+                    enemiesDefeated: this.enemiesDefeated,
+                    enemy: this.enemy,
+                    upgrades: this.upgrades
+                };
+                localStorage.setItem('idle_rpg_save', JSON.stringify(saveData));
+            },
+
+            // Логика загрузки данных
+            loadGame: function() {
+                const rawData = localStorage.getItem('idle_rpg_save');
+                if (rawData) {
+                    try {
+                        const saved = JSON.parse(rawData);
+                        this.gold = saved.gold ?? 0;
+                        this.heroLevel = saved.heroLevel ?? 1;
+                        this.enemiesDefeated = saved.enemiesDefeated ?? 0;
+                        this.enemy = saved.enemy ?? this.enemy;
+                        this.upgrades = saved.upgrades ?? JSON.parse(JSON.stringify(DEFAULT_UPGRADES));
+                        this.recalculateStats();
+                        return;
+                    } catch(e) {
+                        console.error("Ошибка загрузки сейва, сброс...", e);
+                    }
                 }
+                // Если сейва нет, загружаем дефолтные апгрейды
+                this.upgrades = JSON.parse(JSON.stringify(DEFAULT_UPGRADES));
+            },
+
+            resetGame: function() {
+                localStorage.removeItem('idle_rpg_save');
+                location.reload();
             }
-        }
+        };
 
-        // --- ПАНЕЛЬ АДМИНА ---
-        async function createCitizen() {
-            const fio = document.getElementById('new-fio').value.trim();
-            const passport = document.getElementById('new-passport').value;
-            const snils = document.getElementById('new-snils').value;
-
-            if (!fio || !passport) return alert("ФИО и Паспорт обязательны!");
-            
-            const db = await getDB(); 
-            if (db.users.find(u => u.fio === fio)) return alert("Гражданин с таким ФИО уже существует!");
-
-            db.users.push({ fio, passport, snils, password: null, role: 'citizen' });
-            await saveDB(db); 
-            
-            document.getElementById('new-fio').value = '';
-            document.getElementById('new-passport').value = '';
-            document.getElementById('new-snils').value = '';
-            alert("Гражданин " + fio + " успешно внесен в онлайн-базу!");
-        }
-
-        async function issueFine() {
-            const fio = document.getElementById('fine-fio').value.trim();
-            const amount = document.getElementById('fine-amount').value;
-            const reason = document.getElementById('fine-reason').value;
-
-            const db = await getDB();
-            if (!db.users.find(u => u.fio === fio)) return alert("Ошибка: Такого гражданина нет в базе!");
-            
-            db.fines.push({ fio, amount, reason, date: new Date().toLocaleDateString() });
-            await saveDB(db);
-            
-            document.getElementById('fine-amount').value = '';
-            document.getElementById('fine-reason').value = '';
-            alert("Штраф отправлен на сервер!");
-        }
-
-        // --- ПАНЕЛЬ ГРАЖДАНИНА ---
-        function startCitizenSession(user) {
-            currentUser = user;
-            hideAll();
-            document.getElementById('citizen-screen').classList.remove('hidden');
-            
-            document.getElementById('cit-fio').innerText = user.fio;
-            document.getElementById('cit-passport').innerText = user.passport || 'Не указан';
-            document.getElementById('cit-snils').innerText = user.snils || 'Не указан';
-
-            loadMyFines();
-            // Обновляем штрафы каждые 3 секунды
-            updateTimer = setInterval(loadMyFines, 3000);
-        }
-
-        async function loadMyFines() {
-            if (!currentUser) return;
-            const db = await getDB();
-            
-            const myFines = db.fines.filter(f => f.fio === currentUser.fio);
-            const finesDiv = document.getElementById('cit-fines');
-            
-            if (myFines.length === 0) {
-                finesDiv.innerHTML = '<p style="color: green;">У вас нет неоплаченных штрафов.</p>';
-            } else {
-                finesDiv.innerHTML = myFines.map(f => `
-                    <div class="fine-card">
-                        <b>Сумма: ${f.amount} ₽</b><br>
-                        <span style="color: #666; font-size: 14px;">Причина: ${f.reason} (от ${f.date})</span>
-                    </div>
-                `).join('');
-            }
-        }
-
-        function logout() {
-            currentUser = null;
-            clearInterval(updateTimer); 
-            hideAll();
-            document.getElementById('auth-screen').classList.remove('hidden');
-            document.getElementById('login-fio').value = '';
-            document.getElementById('login-pass').value = '';
-        }
+        // Старт
+        window.onload = () => game.init();
     </script>
 </body>
 </html>
